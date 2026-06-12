@@ -98,3 +98,10 @@ tears or hangs, log in once with `DE_SOFTWARE_RENDER=1` set (see
 Designed and built by **scubba**, pair-programmed with **[Claude Code](https://claude.com/claude-code)** (Anthropic's Claude) — which scaffolded the installer, the Quickshell components, and this documentation.
 
 Built on the work of the [Hyprland](https://hypr.land) and [Quickshell](https://quickshell.org) projects.
+
+## License
+
+**GPL-2.0-only** — see [LICENSE](LICENSE). Like the Linux kernel: use it, study it,
+share it, and build on it freely; but if you distribute a modified version, your
+changes must ship under the same terms (copyleft). Improvements are welcome
+upstream via pull request.
