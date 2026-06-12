@@ -252,6 +252,7 @@ Scope {
                         Repeater {
                             model: SystemTray.items
                             delegate: Item {
+                                id: trayDelegate
                                 required property var modelData
                                 width: 18; height: win.height
                                 Image {
@@ -260,14 +261,36 @@ Scope {
                                     source: modelData.icon
                                     sourceSize.width: 32; sourceSize.height: 32
                                 }
+                                // The app's own context menu (SNI DBusMenu), rendered by
+                                // Quickshell and anchored just under the icon. This is what
+                                // was missing — Slack/Steam/1Password expose their actions
+                                // (Open, Quit, …) here, not via secondaryActivate().
+                                QsMenuAnchor {
+                                    id: trayMenu
+                                    menu: trayDelegate.modelData.menu
+                                    anchor.window: win
+                                    anchor.rect.x: trayDelegate.mapToItem(null, 0, 0).x
+                                    anchor.rect.y: win.height
+                                    anchor.rect.width: trayDelegate.width
+                                }
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                                     onClicked: function (m) {
-                                        if (m.button === Qt.RightButton) modelData.secondaryActivate()
-                                        else modelData.activate()
+                                        var it = trayDelegate.modelData
+                                        if (m.button === Qt.RightButton) {
+                                            if (it.hasMenu) trayMenu.open()
+                                        } else if (m.button === Qt.MiddleButton) {
+                                            it.secondaryActivate()
+                                        } else {
+                                            // left-click: primary activate; menu-only items
+                                            // (Steam, 1Password) have no activate → show menu
+                                            if (it.onlyMenu && it.hasMenu) trayMenu.open()
+                                            else it.activate()
+                                        }
                                     }
+                                    onWheel: function (w) { trayDelegate.modelData.scroll(w.angleDelta.y, false) }
                                 }
                             }
                         }

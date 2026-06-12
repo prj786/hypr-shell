@@ -1,4 +1,4 @@
-# hyprdots — a macOS-style Hyprland + Quickshell desktop (Arch)
+# hypr-shell — a macOS-style Hyprland + Quickshell desktop (Arch)
 
 An opinionated, installable desktop environment for **Arch Linux**: **Hyprland**
 (Wayland compositor, Lua-configured) + **Quickshell** (QML shell — bar, dock,
@@ -14,7 +14,7 @@ full DE.
 ## Quick start
 
 ```sh
-git clone <this-repo> ~/hyprdots && cd ~/hyprdots
+git clone https://github.com/<your-username>/hypr-shell ~/hypr-shell && cd ~/hypr-shell
 bash install.sh              # prompts before each change
 # or:
 bash install.sh --dry-run    # show everything it would do, change nothing
@@ -92,3 +92,9 @@ The `xe` kernel driver has a DPMS-resume bug that can strand a black screen, so 
 shipped `hypridle.conf` locks but **never powers the panel off**. If the iGPU ever
 tears or hangs, log in once with `DE_SOFTWARE_RENDER=1` set (see
 `dotfiles/hypr/start-hyprland.sh`).
+
+## Credits
+
+Designed and built by **scubba**, pair-programmed with **[Claude Code](https://claude.com/claude-code)** (Anthropic's Claude) — which scaffolded the installer, the Quickshell components, and this documentation.
+
+Built on the work of the [Hyprland](https://hypr.land) and [Quickshell](https://quickshell.org) projects.
