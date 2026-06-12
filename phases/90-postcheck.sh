@@ -13,7 +13,8 @@ phase_postcheck() {
     _check "binaries: Hyprland + qs present"      sh -c 'command -v Hyprland && command -v qs'
     _check "AUR helper present"                   sh -c 'command -v paru || command -v yay'
     _check "multilib repo enabled"                sh -c 'pacman-conf --repo-list | grep -qx multilib'
-    _check "greeter: sddm installed"              pacman -Qq sddm
+    _check "greeter: greetd + regreet + cage"     sh -c 'pacman -Qq greetd && pacman -Qq greetd-regreet && pacman -Qq cage'
+    _check "fully Wayland: no xorg-server"         sh -c '! pacman -Qq xorg-server 2>/dev/null'
     _check "session target active"                systemctl --user is-active hyprland-session.target
     _check "portal: xdg-desktop-portal active"    systemctl --user is-active xdg-desktop-portal.service
     _check "portal: hyprland backend active"      systemctl --user is-active xdg-desktop-portal-hyprland.service

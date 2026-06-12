@@ -1,0 +1,13 @@
+# Installed to /etc/greetd/config.toml by phase 30. Fully Wayland: greetd runs
+# `cage` (a one-shot kiosk Wayland compositor) which hosts ReGreet, the graphical
+# greeter. No Xorg. After you pick "Hyprland (DE)" and log in, ReGreet exec's the
+# session's wrapper (start-hyprland.sh) — also pure Wayland.
+[terminal]
+# The VT the greeter owns. vt = "next" picks a free one automatically.
+vt = "next"
+
+[default_session]
+# cage -s prints its socket info and runs regreet fullscreen; regreet talks to
+# greetd over $GREETD_SOCK to authenticate and launch the chosen session.
+command = "cage -s -- regreet"
+user = "greeter"

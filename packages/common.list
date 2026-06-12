@@ -20,11 +20,12 @@ qt6-multimedia-ffmpeg
 xdg-user-dirs
 xdg-utils
 
-# ── greeter / welcome screen (SDDM = Qt, matches the shell; minimal X for its
-#    greeter so login is rock-solid, then it launches the Wayland session) ──────
-sddm
-xorg-server
-xorg-xauth
+# ── greeter / welcome screen — FULLY WAYLAND, zero Xorg. greetd is the login
+#    daemon; ReGreet (gtk4-layer-shell, Wayland-native) is the graphical greeter,
+#    rendered by `cage` (a one-shot kiosk Wayland compositor). regreet is in the
+#    AUR (see aur.list). No xorg-server anywhere. ───────────────────────────────
+greetd
+cage
 
 # ── audio (PipeWire, low-latency-ready) ──────────────────────────────────────
 pipewire

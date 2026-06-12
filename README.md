@@ -24,7 +24,7 @@ bash install.sh --check-only # just run the verification checklist
 
 Run it as your **normal user** (not root) — the AUR helper and `makepkg` refuse
 root, and the script uses `sudo` only where it must. Then reboot, pick
-**“Hyprland (DE)”** at the SDDM login screen, and log in. `Super+,` opens
+**“Hyprland (DE)”** at the greetd/ReGreet login screen, and log in. `Super+,` opens
 Settings; full keymap in `dotfiles/hypr/SHORTCUTS.md`.
 
 ## What it does (phases)
@@ -34,7 +34,7 @@ Settings; full keymap in `dotfiles/hypr/SHORTCUTS.md`.
 | 00 preflight | tool/network/disk checks; announces the backup policy |
 | 10 repos | enables **[multilib]** (Steam + 32-bit libs); bootstraps **paru** |
 | 20 packages | installs `packages/common.list` (pacman) + `packages/aur.list` (AUR) |
-| 30 services | pipewire/NM/bluetooth/ppd; installs **SDDM** config + the Wayland session entry |
+| 30 services | pipewire/NM/bluetooth/ppd; installs **greetd + ReGreet** (fully-Wayland greeter) + the Wayland session entry |
 | 40 gpu | per-vendor Vulkan + VAAPI drivers (Intel `xe` DPMS guard, NVIDIA suspend fix, AMD) |
 | 50 dotfiles | symlinks `~/.config/{hypr,quickshell}` (backing up any existing), installs the session target |
 | 60 userconfig | default apps, `EDITOR=nvim`, zram (laptops) |
@@ -82,7 +82,7 @@ packages/ common.list  aur.list
 phases/   00…90
 dotfiles/ hypr/  quickshell/      ← the actual configs, symlinked into ~/.config
 systemd/  hyprland-session.target ← the portal-activation fix
-system/   sddm.conf.d/            ← installed to /etc by phase 30
+system/   greetd/                ← greetd + ReGreet configs, installed to /etc by phase 30
 templates/hyprland-de.desktop.in  ← rendered into the wayland-sessions dir
 ```
 

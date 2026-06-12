@@ -23,25 +23,30 @@ phase_services() {
     _enable_system bluetooth.service
     _enable_system power-profiles-daemon.service
 
-    # ── Wayland session entry (system-wide, read by SDDM) ──
+    # ── Wayland session entry — installed to BOTH standard dirs so ReGreet finds
+    #    it regardless of its scan paths. ──
     local tmpl="$DOTREPO/templates/hyprland-de.desktop.in"
     local wrap="$HOME/.config/hypr/start-hyprland.sh"
-    local dest=/usr/local/share/wayland-sessions/hyprland-de.desktop
     if [ -r "$tmpl" ]; then
-        sudo_run install -d /usr/local/share/wayland-sessions
-        if [ "${DRY_RUN:-0}" = "1" ]; then info "would write $dest (Exec=$wrap)"
-        else sed "s|@EXEC@|$wrap|g" "$tmpl" | sudo_run tee "$dest" >/dev/null && ok "installed session entry $dest"; fi
+        local d
+        for d in /usr/share/wayland-sessions /usr/local/share/wayland-sessions; do
+            sudo_run install -d "$d"
+            if [ "${DRY_RUN:-0}" = "1" ]; then info "would write $d/hyprland-de.desktop (Exec=$wrap)"
+            else sed "s|@EXEC@|$wrap|g" "$tmpl" | sudo_run tee "$d/hyprland-de.desktop" >/dev/null && ok "installed session entry $d/hyprland-de.desktop"; fi
+        done
     fi
 
-    # ── SDDM (Qt greeter, matches the shell) ──
-    if command -v sddm >/dev/null 2>&1 || pkg_present sddm; then
-        sudo_run install -d /etc/sddm.conf.d
-        sudo_run install -m 644 "$DOTREPO/system/sddm.conf.d/10-hyprdots.conf" /etc/sddm.conf.d/10-hyprdots.conf \
-            && ok "installed SDDM config"
-        _enable_system sddm.service
-        info "SDDM is the greeter — it lists 'Hyprland (DE)'. (Disable any other display-manager.service first.)"
+    # ── greetd + ReGreet (fully Wayland greeter via cage; zero Xorg) ──
+    if command -v greetd >/dev/null 2>&1 || pkg_present greetd; then
+        sudo_run install -d /etc/greetd
+        sudo_run install -m 644 "$DOTREPO/system/greetd/config.toml"  /etc/greetd/config.toml  && ok "installed greetd config"
+        sudo_run install -m 644 "$DOTREPO/system/greetd/regreet.toml" /etc/greetd/regreet.toml && ok "installed ReGreet config"
+        command -v regreet >/dev/null 2>&1 || pkg_present greetd-regreet \
+            || warn "regreet not installed yet (AUR) — greetd will fail to start a greeter until it is. Re-run after the AUR build, or it was installed in phase 20."
+        _enable_system greetd.service
+        info "greetd is the greeter (cage → ReGreet) and lists 'Hyprland (DE)'. Disable any other display-manager.service first."
     else
-        warn "sddm not installed — start the session from a TTY with start-hyprland.sh, or enable a greeter."
+        warn "greetd not installed — start the session from a TTY with start-hyprland.sh, or enable a greeter."
     fi
 
     ok "services done"
