@@ -40,6 +40,13 @@ phase_services() {
     if command -v greetd >/dev/null 2>&1 || pkg_present greetd; then
         sudo_run install -d /etc/greetd
         sudo_run install -m 644 "$DOTREPO/system/greetd/config.toml"  /etc/greetd/config.toml  && ok "installed greetd config"
+        # In a VM the virgl GL path can be too marginal for cage to bring up a
+        # surface; allow wlroots software rendering for the greeter only there.
+        # (The real session already has its own DE_SOFTWARE_RENDER escape hatch.)
+        if [ "${IS_VM:-0}" = "1" ]; then
+            sudo_run sed -i 's|command = "env |command = "env WLR_RENDERER_ALLOW_SOFTWARE=1 |' /etc/greetd/config.toml \
+                && ok "VM detected — greeter allowed to fall back to software rendering."
+        fi
         sudo_run install -m 644 "$DOTREPO/system/greetd/regreet.toml" /etc/greetd/regreet.toml && ok "installed ReGreet config"
         # PAM keyring unlock: login keyring opens with your password at the greeter,
         # so the "login keyring did not get unlocked" prompt never appears.
