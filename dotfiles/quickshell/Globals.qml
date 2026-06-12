@@ -41,6 +41,11 @@ QtObject {
     property real launcherAnchorX: 200       // screen-local x of the launcher dock button (popup centers on it)
     property real storeAnchorX: 200          // screen-local x of the store dock button
 
+    // ── System-tray context menu (themed, rendered by TrayMenu.qml) ─────────────
+    property bool trayMenuOpen: false
+    property var  trayMenuHandle: null       // the clicked item's QsMenuHandle
+    property real trayMenuAnchorX: 200       // screen-local x of the tray icon (menu centers on it)
+
     // ── Pinned apps (desktop ids; persisted in pinned-apps.json) ───────────────
     property var pinnedApps: []
     function isPinned(id) { return (g.pinnedApps || []).indexOf(id) >= 0 }

@@ -261,17 +261,12 @@ Scope {
                                     source: modelData.icon
                                     sourceSize.width: 32; sourceSize.height: 32
                                 }
-                                // The app's own context menu (SNI DBusMenu), rendered by
-                                // Quickshell and anchored just under the icon. This is what
-                                // was missing — Slack/Steam/1Password expose their actions
-                                // (Open, Quit, …) here, not via secondaryActivate().
-                                QsMenuAnchor {
-                                    id: trayMenu
-                                    menu: trayDelegate.modelData.menu
-                                    anchor.window: win
-                                    anchor.rect.x: trayDelegate.mapToItem(null, 0, 0).x
-                                    anchor.rect.y: win.height
-                                    anchor.rect.width: trayDelegate.width
+                                // Open the app's context menu (SNI DBusMenu) in our own
+                                // themed popup (TrayMenu.qml), anchored under the icon.
+                                function openMenu() {
+                                    Globals.trayMenuHandle = trayDelegate.modelData.menu
+                                    Globals.trayMenuAnchorX = trayDelegate.mapToItem(null, trayDelegate.width / 2, 0).x
+                                    Globals.trayMenuOpen = true
                                 }
                                 MouseArea {
                                     anchors.fill: parent
@@ -280,13 +275,13 @@ Scope {
                                     onClicked: function (m) {
                                         var it = trayDelegate.modelData
                                         if (m.button === Qt.RightButton) {
-                                            if (it.hasMenu) trayMenu.open()
+                                            if (it.hasMenu) trayDelegate.openMenu()
                                         } else if (m.button === Qt.MiddleButton) {
                                             it.secondaryActivate()
                                         } else {
                                             // left-click: primary activate; menu-only items
                                             // (Steam, 1Password) have no activate → show menu
-                                            if (it.onlyMenu && it.hasMenu) trayMenu.open()
+                                            if (it.onlyMenu && it.hasMenu) trayDelegate.openMenu()
                                             else it.activate()
                                         }
                                     }

@@ -18,3 +18,4 @@ Dock 1.0 Dock.qml
 LauncherPanel 1.0 LauncherPanel.qml
 AppStore 1.0 AppStore.qml
 RunCat 1.0 RunCat.qml
+TrayMenu 1.0 TrayMenu.qml

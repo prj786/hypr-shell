@@ -312,10 +312,24 @@ Scope {
     Process { id: kbProc; command: ["hyprctl", "getoption", "input:kb_layout", "-j"]; stdout: StdioCollector { onStreamFinished: { try { var j = JSON.parse(this.text); if (j && j.str) root.kbLayout = j.str } catch (e) {} } } }
     function applyKb(csv) { root.kbLayout = csv; root.kbDirty = true; Quickshell.execDetached(["hyprctl", "eval", "hl.config({ input = { kb_layout = \"" + csv + "\" } })"]); root.writeOverrides() }
     readonly property var kbPresets: [
-        { c: "us", n: "English (US)" }, { c: "ge", n: "Georgian" }, { c: "ru", n: "Russian" },
-        { c: "gb", n: "English (UK)" }, { c: "de", n: "German" }, { c: "fr", n: "French" },
-        { c: "es", n: "Spanish" }, { c: "it", n: "Italian" }, { c: "tr", n: "Turkish" },
-        { c: "ua", n: "Ukrainian" }, { c: "pl", n: "Polish" }, { c: "gr", n: "Greek" }
+        { c: "us", n: "English (US)" }, { c: "gb", n: "English (UK)" },
+        { c: "ge", n: "Georgian" }, { c: "ru", n: "Russian" }, { c: "ua", n: "Ukrainian" },
+        { c: "de", n: "German" }, { c: "at", n: "German (Austria)" }, { c: "ch", n: "Swiss" },
+        { c: "fr", n: "French" }, { c: "be", n: "Belgian" }, { c: "ca", n: "French (Canada)" },
+        { c: "es", n: "Spanish" }, { c: "latam", n: "Spanish (Latin America)" },
+        { c: "it", n: "Italian" }, { c: "pt", n: "Portuguese" }, { c: "br", n: "Portuguese (Brazil)" },
+        { c: "nl", n: "Dutch" }, { c: "tr", n: "Turkish" }, { c: "gr", n: "Greek" },
+        { c: "pl", n: "Polish" }, { c: "cz", n: "Czech" }, { c: "sk", n: "Slovak" },
+        { c: "hu", n: "Hungarian" }, { c: "ro", n: "Romanian" }, { c: "bg", n: "Bulgarian" },
+        { c: "se", n: "Swedish" }, { c: "no", n: "Norwegian" }, { c: "fi", n: "Finnish" },
+        { c: "dk", n: "Danish" }, { c: "is", n: "Icelandic" },
+        { c: "lt", n: "Lithuanian" }, { c: "lv", n: "Latvian" }, { c: "ee", n: "Estonian" },
+        { c: "rs", n: "Serbian" }, { c: "hr", n: "Croatian" }, { c: "si", n: "Slovenian" },
+        { c: "by", n: "Belarusian" }, { c: "kz", n: "Kazakh" }, { c: "am", n: "Armenian" },
+        { c: "az", n: "Azerbaijani" }, { c: "il", n: "Hebrew" }, { c: "ara", n: "Arabic" },
+        { c: "ir", n: "Persian" }, { c: "in", n: "Indian" }, { c: "jp", n: "Japanese" },
+        { c: "kr", n: "Korean" }, { c: "cn", n: "Chinese" }, { c: "th", n: "Thai" },
+        { c: "vn", n: "Vietnamese" }
     ]
     // shortcuts (rendered from SHORTCUTS.md)
     property string shortcutsMd: ""
@@ -647,7 +661,7 @@ Scope {
                     spacing: 14
                     // Wi-Fi
                     Item {
-                        width: parent.width; height: 20
+                        width: parent.width; height: 30
                         SectionTitle { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "WI-FI" }
                         Toggle { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; on: root.wifiOn; onToggled: { Quickshell.execDetached(["nmcli", "radio", "wifi", root.wifiOn ? "off" : "on"]); wifiRescan.restart() } }
                     }
@@ -793,7 +807,25 @@ Scope {
                     id: kbPane
                     spacing: 14
                     property var active: root.kbLayout.split(",").filter(function (x) { return x.trim() !== "" })
+                    property string kbQuery: ""
                     function nameOf(code) { for (var i = 0; i < root.kbPresets.length; i++) if (root.kbPresets[i].c === code) return root.kbPresets[i].n; return code }
+                    // layouts not already active, matching the search query (name or code)
+                    function filtered() {
+                        var q = kbPane.kbQuery.trim().toLowerCase()
+                        var act = root.kbLayout.split(",")
+                        var out = []
+                        for (var i = 0; i < root.kbPresets.length; i++) {
+                            var p = root.kbPresets[i]
+                            if (act.indexOf(p.c) >= 0) continue
+                            if (q === "" || p.n.toLowerCase().indexOf(q) >= 0 || p.c.toLowerCase().indexOf(q) >= 0) out.push(p)
+                        }
+                        return out
+                    }
+                    function addLayout(code) {
+                        var a = root.kbLayout.split(",").filter(function (x) { return x.trim() !== "" })
+                        if (a.indexOf(code) < 0) a.push(code)
+                        root.applyKb(a.join(","))
+                    }
                     SectionTitle { text: "ACTIVE LAYOUTS  ·  switch with Super+Shift+Space" }
                     Card {
                         Flow {
@@ -813,27 +845,45 @@ Scope {
                             }
                         }
                     }
-                    SectionTitle { text: "ADD A LAYOUT" }
+                    SectionTitle { text: "ADD A LAYOUT  ·  " + root.kbPresets.length + " languages" }
                     Card {
-                        Flow {
-                            width: parent.width; spacing: 8
-                            Repeater {
-                                model: root.kbPresets
-                                delegate: Rectangle {
-                                    required property var modelData
-                                    readonly property bool have: root.kbLayout.split(",").indexOf(modelData.c) >= 0
-                                    visible: !have
-                                    height: 28; width: addRow.implicitWidth + 18; radius: 8; color: aMa3.containsMouse ? Theme.accent : Theme.panel; border.color: Theme.stroke; border.width: 1
-                                    Row { id: addRow; anchors.centerIn: parent; spacing: 6
-                                        Text { anchors.verticalCenter: parent.verticalCenter; text: "+"; color: aMa3.containsMouse ? Theme.accentText : Theme.accent; font.family: Theme.fontText; font.pixelSize: 13 }
-                                        Text { anchors.verticalCenter: parent.verticalCenter; text: modelData.n; color: aMa3.containsMouse ? Theme.accentText : Theme.fg; font.family: Theme.fontText; font.pixelSize: 11 }
-                                    }
-                                    MouseArea { id: aMa3; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { var a = root.kbLayout.split(",").filter(function (x) { return x.trim() !== "" }); a.push(modelData.c); root.applyKb(a.join(",")) } }
+                        Column {
+                            width: parent.width; spacing: 10
+                            // search field
+                            Rectangle {
+                                width: parent.width; height: 34; radius: Theme.radiusInner
+                                color: Theme.bg; border.color: kbSearch.activeFocus ? Theme.accent : Theme.stroke; border.width: 1
+                                Text { anchors.left: parent.left; anchors.leftMargin: 11; anchors.verticalCenter: parent.verticalCenter; text: root.g(0xF0349); font.family: Theme.fontMono; font.pixelSize: 13; color: Theme.fgDim }
+                                TextInput {
+                                    id: kbSearch
+                                    anchors.fill: parent; anchors.leftMargin: 34; anchors.rightMargin: 12; verticalAlignment: TextInput.AlignVCenter; clip: true
+                                    color: Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall
+                                    onTextChanged: kbPane.kbQuery = text
+                                    // Enter adds the first match
+                                    onAccepted: { var f = kbPane.filtered(); if (f.length) { kbPane.addLayout(f[0].c); text = "" } }
+                                    Text { anchors.verticalCenter: parent.verticalCenter; visible: kbSearch.text.length === 0; text: "Search languages… (e.g. German, fr, العربية)"; color: Theme.fgDim; font: kbSearch.font }
                                 }
                             }
+                            // matching layouts (chips) — click to add
+                            Flow {
+                                width: parent.width; spacing: 8
+                                Repeater {
+                                    model: kbPane.filtered()
+                                    delegate: Rectangle {
+                                        required property var modelData
+                                        height: 28; width: addRow.implicitWidth + 18; radius: 8; color: aMa3.containsMouse ? Theme.accent : Theme.panel; border.color: Theme.stroke; border.width: 1
+                                        Row { id: addRow; anchors.centerIn: parent; spacing: 6
+                                            Text { anchors.verticalCenter: parent.verticalCenter; text: "+"; color: aMa3.containsMouse ? Theme.accentText : Theme.accent; font.family: Theme.fontText; font.pixelSize: 13 }
+                                            Text { anchors.verticalCenter: parent.verticalCenter; text: modelData.n + "  (" + modelData.c + ")"; color: aMa3.containsMouse ? Theme.accentText : Theme.fg; font.family: Theme.fontText; font.pixelSize: 11 }
+                                        }
+                                        MouseArea { id: aMa3; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: kbPane.addLayout(modelData.c) }
+                                    }
+                                }
+                            }
+                            Text { width: parent.width; visible: kbPane.filtered().length === 0; text: "No matching layout."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall }
                         }
                     }
-                    Text { width: parent.width; text: "Per-window layout memory is handled by the kb-per-window daemon."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; wrapMode: Text.Wrap }
+                    Text { width: parent.width; text: "Switch with Super+Shift+Space. Per-window layout memory is handled by the kb-per-window daemon."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; wrapMode: Text.Wrap }
                     Item { width: 1; height: 8 }
                 }
             }
