@@ -1,41 +1,45 @@
 #!/usr/bin/env bash
-# phase 40 — per-vendor GPU setup. Drivers themselves come from common.list +
-# the family map (mesa/vulkan are pulled as deps); this phase does the
-# vendor-specific *config* that packages can't.
+# phase 40 — install per-vendor Vulkan + VAAPI drivers and do vendor config.
+# mesa/lib32-mesa + vulkan-icd-loader come from common.list; this adds the
+# vendor-specific ICD + video-decode driver for whatever GPU was detected.
 
 phase_gpu() {
     step "40 · GPU ($GPU_VENDOR)"
+    [ "${NO_PACKAGES:-0}" = "1" ] || {
+        case " $GPU_VENDOR " in
+            *" intel "*)
+                install_official vulkan-intel lib32-vulkan-intel intel-media-driver
+                ok "Intel: ANV + iHD VAAPI installed." ;;
+        esac
+        case " $GPU_VENDOR " in
+            *" amd "*)
+                install_official vulkan-radeon lib32-vulkan-radeon libva-mesa-driver lib32-libva-mesa-driver
+                ok "AMD: RADV + VAAPI installed." ;;
+        esac
+        case " $GPU_VENDOR " in
+            *" nvidia "*)
+                warn "NVIDIA: installing the OPEN modules (Turing+). For older GPUs use nvidia-dkms instead."
+                install_official nvidia-open-dkms nvidia-utils lib32-nvidia-utils egl-wayland ;;
+        esac
+    }
 
+    # ── Intel Lunar Lake / Xe2 note: the `xe` driver has a DPMS-resume bug, so the
+    #    shipped hypridle.conf locks but never powers the panel off. ──
     case " $GPU_VENDOR " in
-        *" intel "*)
-            # Lunar Lake / Xe2 uses the `xe` kernel driver. Its DPMS-resume bug can
-            # strand a black screen, so the shipped hypridle.conf deliberately has
-            # NO `dpms off` listener (lock-only). Just confirm the VAAPI driver.
-            if command -v vainfo >/dev/null 2>&1; then
-                info "Intel: ensure intel-media-driver (iHD) provides VAAPI — phase 90 verifies."
-            fi
-            if lspci -k 2>/dev/null | grep -qi 'in use: xe'; then
-                ok "xe driver detected — hypridle ships without dpms-off (resume-bug guard)."
-            fi ;;
+        *" intel "*) lspci -k 2>/dev/null | grep -qi 'in use: xe' \
+            && ok "xe driver detected — hypridle ships without dpms-off (resume-bug guard)." ;;
     esac
 
-    case " $GPU_VENDOR " in
-        *" amd "*)
-            ok "AMD: mesa + vulkan-radeon (RADV) need no extra config." ;;
-    esac
-
+    # ── NVIDIA: enable modeset + the suspend-fix services (resume corruption) ──
     case " $GPU_VENDOR " in
         *" nvidia "*)
-            warn "NVIDIA needs care. Recommended:"
-            echo "    - install the OPEN kernel modules (nvidia-open) for Turing+"
-            echo "    - kernel params: nvidia_drm.modeset=1 nvidia.NVreg_PreserveVideoMemoryAllocations=1"
-            echo "    - enable the suspend fix services (prevents resume corruption):"
+            info "NVIDIA: set kernel params nvidia_drm.modeset=1 nvidia.NVreg_PreserveVideoMemoryAllocations=1"
             for u in nvidia-suspend nvidia-resume nvidia-hibernate; do
-                _enable_system "${u}.service"
+                command -v systemctl >/dev/null 2>&1 && sudo_run systemctl enable "${u}.service" 2>/dev/null || true
             done
-            echo "    - set env in hypr/conf: LIBVA_DRIVER_NAME=nvidia, __GL_GSYNC_ALLOWED=1" ;;
+            info "NVIDIA: add env in hypr/conf.d — LIBVA_DRIVER_NAME=nvidia, __GL_GSYNC_ALLOWED=1, AQ_DRM_DEVICES if multi-GPU." ;;
     esac
 
-    [ "$GPU_VENDOR" = "unknown" ] && warn "could not detect a GPU vendor (no lspci?) — skipped GPU config."
+    [ "$GPU_VENDOR" = "unknown" ] && warn "no GPU detected (no lspci?) — installed mesa only."
     ok "GPU phase done"
 }

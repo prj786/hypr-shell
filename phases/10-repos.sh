@@ -1,49 +1,42 @@
 #!/usr/bin/env bash
-# phase 10 — enable the extra repos each family needs for Hyprland/Quickshell.
+# phase 10 — enable [multilib] (for 32-bit gaming libs + Steam) and bootstrap an
+# AUR helper. Both are idempotent.
 
-# bootstrap an AUR helper on Arch (paru) if none present
+_enable_multilib() {
+    if multilib_enabled; then ok "[multilib] already enabled"; return; fi
+    info "enabling [multilib] in /etc/pacman.conf (needed for steam + lib32-*)"
+    if [ "${DRY_RUN:-0}" = "1" ]; then info "would uncomment the [multilib] block in /etc/pacman.conf"; return; fi
+    # uncomment the standard two-line [multilib] block
+    sudo_run sed -i '/^#\[multilib\]/{N;s/^#\[multilib\]\n#Include = \(.*\)/[multilib]\nInclude = \1/}' /etc/pacman.conf
+    if multilib_enabled; then ok "[multilib] enabled"; else
+        warn "could not auto-enable [multilib] — uncomment the [multilib] block in /etc/pacman.conf by hand, then re-run."
+    fi
+    sudo_run pacman -Sy
+}
+
 _bootstrap_aur() {
-    command -v paru >/dev/null 2>&1 && { ok "AUR helper present (paru)"; return; }
-    command -v yay  >/dev/null 2>&1 && { ok "AUR helper present (yay)";  return; }
+    if command -v paru >/dev/null 2>&1; then AUR_HELPER=paru; export AUR_HELPER; ok "AUR helper present (paru)"; return; fi
+    if command -v yay  >/dev/null 2>&1; then AUR_HELPER=yay;  export AUR_HELPER; ok "AUR helper present (yay)";  return; fi
     info "bootstrapping paru (AUR helper)…"
-    sudo_run pacman -S --needed --noconfirm base-devel git
-    if [ "${DRY_RUN:-0}" = "1" ]; then info "would clone+makepkg paru-bin"; return; fi
+    install_official base-devel git
+    if [ "${DRY_RUN:-0}" = "1" ]; then info "would clone + makepkg paru-bin"; AUR_HELPER=paru; export AUR_HELPER; return; fi
+    if [ "$(id -u)" = "0" ]; then
+        warn "running as root — makepkg refuses root, so paru can't be bootstrapped here. Install an AUR helper as your normal user, then re-run."
+        return
+    fi
     local t; t="$(mktemp -d)"
-    git clone --depth 1 https://aur.archlinux.org/paru-bin.git "$t" \
-        && ( cd "$t" && makepkg -si --noconfirm ) \
-        && ok "paru installed" || warn "paru bootstrap failed — install an AUR helper manually."
+    if git clone --depth 1 https://aur.archlinux.org/paru-bin.git "$t" \
+       && ( cd "$t" && makepkg -si --noconfirm ); then
+        AUR_HELPER=paru; export AUR_HELPER; ok "paru installed"
+    else
+        warn "paru bootstrap failed — AUR packages (aur.list) will be skipped. Install a helper manually."
+    fi
     rm -rf "$t"
 }
 
 phase_repos() {
     step "10 · repositories"
-    case "$FAMILY" in
-        arch)
-            _bootstrap_aur
-            # route the package install through the AUR helper so AUR names resolve
-            AUR_HELPER="$(command -v paru || command -v yay || true)"
-            export AUR_HELPER ;;
-        fedora)
-            sudo_run dnf install -y dnf5-plugins 2>/dev/null \
-                || sudo_run dnf install -y dnf-plugins-core
-            # ashbuk/Hyprland-Fedora ships Hyprland 0.55+ (Lua-capable). Do NOT use
-            # solopasha/hyprland — it lagged at 0.51 (pre-Lua) and breaks hyprland.lua.
-            sudo_run dnf -y copr enable ashbuk/Hyprland-Fedora || warn "copr ashbuk/Hyprland-Fedora failed"
-            # Quickshell is in Fedora's official repos — no COPR needed.
-            # RPM Fusion (steam, gpu-screen-recorder)
-            local rel; rel="$(rpm -E %fedora 2>/dev/null || echo 41)"
-            sudo_run dnf install -y \
-                "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${rel}.noarch.rpm" \
-                "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${rel}.noarch.rpm" \
-                2>/dev/null || info "RPM Fusion already enabled or unavailable (steam may be skipped)" ;;
-        suse)
-            sudo_run zypper --non-interactive addrepo --refresh \
-                'https://download.opensuse.org/repositories/X11:/Wayland/openSUSE_Tumbleweed/X11:Wayland.repo' \
-                2>/dev/null || info "OBS X11:Wayland repo already present"
-            sudo_run zypper --non-interactive --gpg-auto-import-keys refresh ;;
-        debian)
-            warn "TIER 3: no Hyprland/Quickshell packages. Phase 20 will mark them BUILD."
-            sudo_run apt-get update ;;
-    esac
+    _enable_multilib
+    _bootstrap_aur
     ok "repositories ready"
 }

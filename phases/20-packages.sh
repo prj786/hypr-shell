@@ -1,26 +1,25 @@
 #!/usr/bin/env bash
-# phase 20 — resolve common.list → native names and install in one batch.
+# phase 20 — install the official-repo set (pacman) then the AUR set (helper).
 
 phase_packages() {
     step "20 · packages"
     [ "${NO_PACKAGES:-0}" = "1" ] && { info "--no-packages: skipping install"; return 0; }
 
-    resolve_packages   # fills TO_INSTALL / TO_BUILD / SKIPPED
+    local off aur
+    mapfile -t off < <(read_list common.list)
+    mapfile -t aur < <(read_list aur.list)
 
-    info "${#TO_INSTALL[@]} packages to install via the $FAMILY package manager"
-    [ "${#SKIPPED[@]}"  -gt 0 ] && info "not packaged on $FAMILY (handled elsewhere/optional): ${SKIPPED[*]}"
-    [ "${#TO_BUILD[@]}" -gt 0 ] && warn "must be BUILT from source on $FAMILY: ${TO_BUILD[*]}  (see VERSIONS / README tier-3 notes)"
-
+    info "${#off[@]} official packages + ${#aur[@]} AUR packages"
     if [ "${DRY_RUN:-0}" = "1" ]; then
-        printf '%s   would install:%s %s\n' "$C_DIM" "$C_0" "${TO_INSTALL[*]}"
-    else
-        ask_yes "Install ${#TO_INSTALL[@]} packages now?" || { warn "skipped package install"; return 0; }
-        # On Arch, prefer the AUR helper so AUR names (regreet, satty, bibata…) resolve.
-        if [ "$FAMILY" = "arch" ] && [ -n "${AUR_HELPER:-}" ]; then
-            run "$AUR_HELPER" -S --needed --noconfirm "${TO_INSTALL[@]}"
-        else
-            install_packages
-        fi
+        printf '%s   pacman:%s %s\n' "$C_DIM" "$C_0" "${off[*]}"
+        printf '%s   aur:%s    %s\n' "$C_DIM" "$C_0" "${aur[*]}"
+        return 0
+    fi
+
+    ask_yes "Install ${#off[@]} official packages now?" && install_official "${off[@]}" || warn "skipped official packages"
+    if [ "${#aur[@]}" -gt 0 ]; then
+        ask_yes "Build & install ${#aur[@]} AUR packages now? (compiles from source)" \
+            && install_aur "${aur[@]}" || warn "skipped AUR packages"
     fi
     ok "package phase done"
 }

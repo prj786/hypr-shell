@@ -1,8 +1,8 @@
-# common.list — canonical (generic) package names, one per line.
-# Native translation per distro lives in packages/<family>.map (overrides only).
-# Names here are the Arch/Fedora spelling where they agree; maps fix the rest.
+# common.list — official-repo (pacman) packages, real Arch names, one per line.
+# AUR packages live in aur.list. GPU/Vulkan drivers are installed per-vendor by
+# phase 40, not here. Comments (#) and blank lines are ignored.
 
-# ── core session ────────────────────────────────────────────────────────────
+# ── core session ─────────────────────────────────────────────────────────────
 hyprland
 quickshell
 hypridle
@@ -12,51 +12,81 @@ xdg-desktop-portal-hyprland
 xdg-desktop-portal-gtk
 polkit
 gnome-keyring
-greetd
-greetd-regreet
+qt5-wayland
+qt6-wayland
+qt6-svg
+qt6-5compat
+qt6-multimedia-ffmpeg
+xdg-user-dirs
+xdg-utils
 
-# ── audio / network / bluetooth / power ──────────────────────────────────────
+# ── greeter / welcome screen (SDDM = Qt, matches the shell; minimal X for its
+#    greeter so login is rock-solid, then it launches the Wayland session) ──────
+sddm
+xorg-server
+xorg-xauth
+
+# ── audio (PipeWire, low-latency-ready) ──────────────────────────────────────
 pipewire
-wireplumber
 pipewire-pulse
+pipewire-alsa
+pipewire-jack
+wireplumber
+pavucontrol
+
+# ── network / bluetooth / power ──────────────────────────────────────────────
 networkmanager
+iwd
 bluez
 bluez-utils
 blueman
 power-profiles-daemon
 
-# ── desktop essentials ───────────────────────────────────────────────────────
-ghostty
+# ── terminals ────────────────────────────────────────────────────────────────
 foot
+ghostty
+
+# ── file manager + mounting + thumbnails + archives ──────────────────────────
 nautilus
 gvfs
+gvfs-mtp
+gvfs-smb
 udisks2
+ffmpegthumbnailer
+file-roller
+unzip
+p7zip
+
+# ── browser / editors ────────────────────────────────────────────────────────
 firefox
 neovim
 vim
 
-# ── utilities ────────────────────────────────────────────────────────────────
+# ── desktop utilities ────────────────────────────────────────────────────────
 swaybg
 swww
 grim
 slurp
 satty
-gpu-screen-recorder
 cliphist
 wl-clipboard
 hyprpicker
 brightnessctl
 playerctl
+jq
+socat
 
-# ── theming / fonts ──────────────────────────────────────────────────────────
-adw-gtk3
+# ── theming (GTK + Qt unified) + fonts ───────────────────────────────────────
+adw-gtk-theme
+gnome-themes-extra
 qt6ct
 kvantum
 papirus-icon-theme
-bibata-cursor-theme
-inter-font
+noto-fonts
+noto-fonts-emoji
 ttf-jetbrains-mono-nerd
-noto-fonts-georgian
+ttf-nerd-fonts-symbols-mono
+inter-font
 
 # ── dev tooling ──────────────────────────────────────────────────────────────
 git
@@ -65,16 +95,22 @@ lazygit
 mise
 podman
 
-# ── gaming ───────────────────────────────────────────────────────────────────
-gamemode
-mangohud
+# ── gaming (needs multilib — phase 10 enables it) ────────────────────────────
 steam
+gamemode
+lib32-gamemode
+gamescope
+mangohud
+lib32-mangohud
+mesa
+lib32-mesa
+vulkan-icd-loader
+lib32-vulkan-icd-loader
 
 # ── system tuning ────────────────────────────────────────────────────────────
 zram-generator
 
-# ── build deps (for the from-source tier + plugins) ──────────────────────────
-gcc
+# ── build deps (AUR builds + hyprpm plugins) ─────────────────────────────────
+base-devel
 cmake
 meson
-git-build

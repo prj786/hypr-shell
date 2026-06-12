@@ -1,0 +1,6 @@
+# aur.list — AUR packages, installed via the helper (paru) bootstrapped in
+# phase 10. One per line; # comments and blanks ignored. Keep this short: every
+# entry is a from-source build, so only put here what the official repos lack.
+bibata-cursor-theme        # macOS-ish cursor; matches the aesthetic
+nwg-look                   # GTK theme/icon/cursor settings GUI for Wayland (no GNOME control center)
+gpu-screen-recorder        # GPU-encoded screen capture + replay buffer (VAAPI/NVENC)

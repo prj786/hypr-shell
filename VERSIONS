@@ -1,13 +1,8 @@
-# Pinned stable versions — "stable only" is enforced here.
-# Repo-packaged distros (Arch/Fedora/openSUSE) track their stable repo/COPR/OBS
-# builds. Only the from-source tier (Debian/Ubuntu) checks these tags out.
-# Never set any of these to a branch name (main/master) or a -git ref.
+# Minimum versions this DE assumes. On Arch you get these from the rolling repos
+# (pacman) + AUR, so there's nothing to pin — this file is documentation of the
+# floor, not a lockfile.
+#
 # Hyprland MUST be >= 0.55 — that's where the Lua config (hyprland.lua) landed.
 # Anything older silently ignores the config and the DE won't come up right.
-hyprland=v0.55.1
-quickshell=v0.2.0
-hypridle=v0.1.6
-hyprlock=v0.9.0
-hyprpicker=v0.4.4
-swww=v0.10.3
-satty=0.20.1
+hyprland >= 0.55
+quickshell >= 0.2
