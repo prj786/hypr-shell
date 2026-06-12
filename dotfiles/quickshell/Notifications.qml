@@ -4,18 +4,45 @@ import Quickshell.Wayland
 import Quickshell.Services.Notifications
 
 // Notifications — Quickshell IS the notification server now (replaces swaync).
-// Live notifications appear as solid toasts top-right (unless DND); the full
-// list lives in the control centre. The server is shared via Globals.server.
+// Live toasts appear top-right (unless DND), GROUPED by app: several notifications
+// from the same app stack into one card with a count. Clicking a toast focuses the
+// window it came from (via its default action, falling back to focusing the app's
+// window in Hyprland) and dismisses the group. The full list lives in the control
+// centre. The server is shared via Globals.server.
 Scope {
     id: root
 
     property var popups: []
+    property var groups: []   // [{ app, items:[n…], latest:n }] derived from popups
 
-    function pushPopup(n) {
-        var a = root.popups.slice(); a.push(n); root.popups = a
+    function pushPopup(n) { var a = root.popups.slice(); a.push(n); root.popups = a; root.rebuild() }
+    function removePopup(n) { root.popups = root.popups.filter(function (x) { return x !== n }); root.rebuild() }
+    function removeGroup(grp) { root.popups = root.popups.filter(function (x) { return grp.items.indexOf(x) < 0 }); root.rebuild() }
+
+    function rebuild() {
+        var by = {}, order = []
+        for (var i = 0; i < root.popups.length; i++) {
+            var n = root.popups[i], k = String(n.appName || "Notification")
+            if (!by[k]) { by[k] = { app: k, items: [] }; order.push(k) }
+            by[k].items.push(n)
+        }
+        var gs = []
+        for (var j = 0; j < order.length; j++) { var grp = by[order[j]]; grp.latest = grp.items[grp.items.length - 1]; gs.push(grp) }
+        root.groups = gs
     }
-    function removePopup(n) {
-        root.popups = root.popups.filter(function (x) { return x !== n })
+
+    // Focus the window a notification came from.
+    function focusFrom(n) {
+        // 1) spec-correct: invoke the "default" action so the app raises itself.
+        try {
+            if (n.actions) for (var i = 0; i < n.actions.length; i++)
+                if (n.actions[i].identifier === "default") { n.actions[i].invoke(); return }
+        } catch (e) {}
+        // 2) fallback: focus a Hyprland window whose class matches the app.
+        var hint = (n.desktopEntry && String(n.desktopEntry).length) ? String(n.desktopEntry) : String(n.appName || "")
+        var seg = hint.split(".").pop().replace(/[^A-Za-z0-9]/g, "")
+        if (!seg.length) return
+        Quickshell.execDetached(["hyprctl", "dispatch", "focuswindow", "class:(?i).*" + seg + ".*"])
     }
 
     NotificationServer {
@@ -32,18 +59,16 @@ Scope {
         }
     }
 
-    // ── toast stack, top-right, below the bar ─────────────────────────────
+    // ── grouped toast stack, top-right, below the bar ─────────────────────────
     PanelWindow {
-        visible: root.popups.length > 0 && !Globals.dnd
+        visible: root.groups.length > 0 && !Globals.dnd
         color: "transparent"
         exclusiveZone: 0
         WlrLayershell.namespace: "quickshell:notifications"
         WlrLayershell.layer: WlrLayer.Overlay
         anchors { top: true; right: true; left: true; bottom: true }
 
-        // Only the toast column grabs pointer input; the rest of this full-screen
-        // overlay is click-through (otherwise it would block everything below it,
-        // e.g. the screenshot preview, for the toasts' whole lifetime).
+        // Only the toast column grabs pointer input; the rest is click-through.
         mask: Region { item: toastColumn }
 
         Column {
@@ -55,72 +80,107 @@ Scope {
             spacing: 8
 
             Repeater {
-                model: root.popups
-                delegate: Rectangle {
-                    id: toast
+                model: root.groups
+                delegate: Item {
+                    id: groupItem
                     required property var modelData
+                    readonly property var latest: modelData.latest
+                    readonly property int count: modelData.items.length
                     width: 360
-                    height: col.implicitHeight + 24
-                    radius: Theme.radiusInner
-                    color: Theme.panel   // solid, from Theme (single source of truth)
-                    border.color: Theme.stroke
-                    border.width: 1
+                    height: card.height + (count > 1 ? 6 : 0)
 
+                    // expire the whole group together (latest notification's timeout)
                     Timer {
                         running: true
-                        interval: toast.modelData.expireTimeout > 0 ? toast.modelData.expireTimeout : 5000
-                        onTriggered: root.removePopup(toast.modelData)
+                        interval: groupItem.latest.expireTimeout > 0 ? groupItem.latest.expireTimeout : 5000
+                        onTriggered: root.removeGroup(groupItem.modelData)
                     }
 
-                    Row {
-                        anchors.fill: parent
-                        anchors.margins: 12
-                        spacing: 12
-                        Image {
-                            width: 38; height: 38
-                            sourceSize.width: 76; sourceSize.height: 76
-                            visible: source != ""
-                            source: {
-                                var n = toast.modelData
-                                if (n.image && n.image != "") return n.image
-                                if (n.appIcon && n.appIcon != "") return Quickshell.iconPath(n.appIcon, "dialog-information")
-                                return Quickshell.iconPath("dialog-information")
-                            }
-                        }
-                        Column {
-                            id: col
-                            width: parent.width - 60
-                            spacing: 2
-                            Text {
-                                width: parent.width
-                                text: toast.modelData.appName || "Notification"
-                                color: Theme.fgDim
-                                font.family: Theme.fontText; font.pixelSize: Theme.fsSmall
-                                elide: Text.ElideRight
-                            }
-                            Text {
-                                width: parent.width
-                                text: toast.modelData.summary || ""
-                                color: Theme.fg
-                                font.family: Theme.fontText; font.pixelSize: Theme.fsBody; font.weight: Font.DemiBold
-                                elide: Text.ElideRight
-                            }
-                            Text {
-                                width: parent.width
-                                visible: text.length > 0
-                                text: toast.modelData.body || ""
-                                color: Theme.fgSecondary
-                                font.family: Theme.fontText; font.pixelSize: Theme.fsSmall
-                                wrapMode: Text.Wrap
-                                maximumLineCount: 3
-                                elide: Text.ElideRight
-                                textFormat: Text.PlainText
-                            }
-                        }
+                    // stacked-card hint behind the main card when there are several
+                    Rectangle {
+                        visible: groupItem.count > 1
+                        anchors.top: parent.top; anchors.topMargin: 6
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width - 14; height: card.height
+                        radius: Theme.radiusInner; color: Theme.panel; opacity: 0.55
+                        border.color: Theme.stroke; border.width: 1
                     }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: root.removePopup(toast.modelData)
+
+                    Rectangle {
+                        id: card
+                        width: parent.width
+                        height: col.implicitHeight + 24
+                        radius: Theme.radiusInner
+                        color: Theme.panel
+                        border.color: Theme.stroke
+                        border.width: 1
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 12
+                            Image {
+                                width: 38; height: 38
+                                sourceSize.width: 76; sourceSize.height: 76
+                                visible: source != ""
+                                source: {
+                                    var n = groupItem.latest
+                                    if (n.image && n.image != "") return n.image
+                                    if (n.appIcon && n.appIcon != "") return Quickshell.iconPath(n.appIcon, "dialog-information")
+                                    return Quickshell.iconPath("dialog-information")
+                                }
+                            }
+                            Column {
+                                id: col
+                                width: parent.width - 60
+                                spacing: 2
+                                Row {
+                                    width: parent.width; spacing: 6
+                                    Text {
+                                        text: groupItem.latest.appName || "Notification"
+                                        color: Theme.fgDim
+                                        font.family: Theme.fontText; font.pixelSize: Theme.fsSmall
+                                        elide: Text.ElideRight
+                                        width: Math.min(implicitWidth, parent.width - 30)
+                                    }
+                                    Rectangle {
+                                        visible: groupItem.count > 1
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: cnt.implicitWidth + 10; height: 15; radius: 7
+                                        color: Theme.accent
+                                        Text { id: cnt; anchors.centerIn: parent; text: groupItem.count; color: Theme.accentText; font.family: Theme.fontText; font.pixelSize: 9; font.weight: Font.Bold }
+                                    }
+                                }
+                                Text {
+                                    width: parent.width
+                                    text: groupItem.latest.summary || ""
+                                    color: Theme.fg
+                                    font.family: Theme.fontText; font.pixelSize: Theme.fsBody; font.weight: Font.DemiBold
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    width: parent.width
+                                    visible: text.length > 0
+                                    text: groupItem.latest.body || ""
+                                    color: Theme.fgSecondary
+                                    font.family: Theme.fontText; font.pixelSize: Theme.fsSmall
+                                    wrapMode: Text.Wrap
+                                    maximumLineCount: 3
+                                    elide: Text.ElideRight
+                                    textFormat: Text.PlainText
+                                }
+                            }
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            acceptedButtons: Qt.LeftButton | Qt.RightButton
+                            onClicked: function (m) {
+                                if (m.button === Qt.RightButton) { root.removeGroup(groupItem.modelData); return }
+                                root.focusFrom(groupItem.latest)        // go to the window that notified
+                                root.removeGroup(groupItem.modelData)   // dismiss the whole group
+                            }
+                        }
                     }
                 }
             }

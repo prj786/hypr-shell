@@ -60,6 +60,7 @@ Scope {
             gen += ", col = { active_border = \"rgba(" + root.hex6(Globals.accentColor) + "ff)\" }"
         gen += " } })\n"
         s += gen
+        s += root.animBlockPersist()
         if (root.kbDirty) s += "hl.config({ input = { kb_layout = \"" + root.kbLayout + "\" } })\n"
         if (root.displaysDirty)
             for (var i = 0; i < root.monList.length; i++) s += root.monLua(root.monList[i]) + "\n"
@@ -74,6 +75,45 @@ Scope {
     Process { id: luaWriter }
     Process { id: jsonWriter }
 
+    // ── Animations (speed multiplier → Hyprland animation overrides) ────────────
+    // Scaling the per-leaf `speed` (duration in ds): higher multiplier → smaller
+    // speed → faster. m=0 disables animations entirely.
+    readonly property var animBase: [
+        { leaf: "global",     s: 9,    bz: "easeOutQuint" },
+        { leaf: "border",     s: 5.39, bz: "easeOutQuint" },
+        { leaf: "windows",    s: 5,    spring: "easy", style: "popin 88%" },
+        { leaf: "windowsOut", s: 3,    bz: "linear",   style: "popin 88%" },
+        { leaf: "fade",       s: 3.5,  bz: "quick" },
+        { leaf: "layers",     s: 4,    bz: "easeOutQuint", style: "fade" },
+        { leaf: "workspaces", s: 5,    bz: "easeOutQuint", style: "slide" }
+    ]
+    function animLuaLines(m) {
+        var L = []
+        if (m <= 0) { L.push("hl.config({ animations = { enabled = false } })"); return L }
+        L.push("hl.config({ animations = { enabled = true } })")
+        for (var i = 0; i < root.animBase.length; i++) {
+            var a = root.animBase[i], sp = (a.s / m).toFixed(2)
+            var s = 'hl.animation({ leaf = "' + a.leaf + '", enabled = true, speed = ' + sp
+            if (a.spring) s += ', spring = "' + a.spring + '"'
+            if (a.bz) s += ', bezier = "' + a.bz + '"'
+            if (a.style) s += ', style = "' + a.style + '"'
+            L.push(s + ' })')
+        }
+        return L
+    }
+    // persisted form: empty at default speed (let hyprland.lua's defaults stand)
+    function animBlockPersist() {
+        var m = Globals.animationSpeed
+        return Math.abs(m - 1) < 0.001 ? "" : (root.animLuaLines(m).join("\n") + "\n")
+    }
+    // live-apply: one `hyprctl eval` per statement (the known-good single-call form)
+    function applyAnimations() {
+        var sh = root.animLuaLines(Globals.animationSpeed).map(function (c) { return "hyprctl eval '" + c + "'" }).join("; ")
+        Quickshell.execDetached(["sh", "-c", sh])
+        root.writeOverrides()
+    }
+    function setAnim(m) { Globals.animationSpeed = m; root.writePrefs(); root.applyAnimations() }
+
     // ── Layout (gaps/border) ────────────────────────────────────────────────────
     function applyGaps() {
         Quickshell.execDetached(["hyprctl", "eval",
@@ -86,7 +126,8 @@ Scope {
     function writePrefs() {
         var s = '{ "accent": "' + String(Globals.accentColor) + '", "tintBorders": ' + (Globals.tintBorders ? "true" : "false")
               + ', "dockEnabled": ' + (Globals.dockEnabled ? "true" : "false")
-              + ', "dockAutohide": ' + (Globals.dockAutohide ? "true" : "false") + ' }'
+              + ', "dockAutohide": ' + (Globals.dockAutohide ? "true" : "false")
+              + ', "animationSpeed": ' + Number(Globals.animationSpeed) + ' }'
         jsonWriter.command = ["sh", "-c", "cat > \"" + root.home + "/.config/quickshell/user-theme.json\" <<'QS_EOF'\n" + s + "\nQS_EOF\n"]
         jsonWriter.running = false; jsonWriter.running = true
     }
@@ -857,6 +898,25 @@ Scope {
                             Toggle { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; on: Globals.tintBorders; onToggled: { Globals.tintBorders = !Globals.tintBorders; root.applyBorder(); root.setAccent(String(Globals.accentColor)) } }
                         }
                     }
+                    SectionTitle { text: "ANIMATIONS" }
+                    Card {
+                        Row {
+                            width: parent.width; spacing: 8
+                            Repeater {
+                                model: [{ n: "Off", m: 0 }, { n: "Smooth", m: 0.7 }, { n: "Normal", m: 1 }, { n: "Fast", m: 1.6 }]
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    readonly property bool sel: Math.abs(Globals.animationSpeed - modelData.m) < 0.001
+                                    width: (parent.width - 24) / 4; height: 32; radius: Theme.radiusInner
+                                    color: sel ? Theme.accent : Theme.panel
+                                    border.color: sel ? Theme.accent : Theme.stroke; border.width: 1
+                                    Text { anchors.centerIn: parent; text: modelData.n; color: parent.sel ? Theme.accentText : Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; font.weight: Font.DemiBold }
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.setAnim(modelData.m) }
+                                }
+                            }
+                        }
+                    }
+                    Text { width: parent.width; text: "Animation speed drives window + shell motion; applies live and persists to user-theme.json + generated/user.lua."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; wrapMode: Text.Wrap }
                     Text { width: parent.width; text: "Accent recolours the whole shell instantly and persists in user-theme.json."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; wrapMode: Text.Wrap }
                     Item { width: 1; height: 8 }
                 }

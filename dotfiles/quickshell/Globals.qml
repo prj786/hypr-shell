@@ -26,6 +26,11 @@ QtObject {
     property color accentColor: "#0a84ff"
     property bool tintBorders: false        // mirror window border colour to the accent
 
+    // Animation speed multiplier driving both the QML shell (Theme.dur*) and the
+    // Hyprland window animations (Settings writes scaled hl.animation overrides).
+    // 1.0 = default; >1 faster; 0 = animations off. Persisted in user-theme.json.
+    property real animationSpeed: 1.0
+
     // ── Dock prefs (bottom dock; persisted in user-theme.json) ─────────────────
     property bool dockEnabled: true
     property bool dockAutohide: false       // intelligent hide: slide away, reveal on bottom-edge hover
@@ -89,6 +94,7 @@ QtObject {
                     if (j && j.tintBorders !== undefined) g.tintBorders = j.tintBorders
                     if (j && j.dockEnabled !== undefined) g.dockEnabled = j.dockEnabled
                     if (j && j.dockAutohide !== undefined) g.dockAutohide = j.dockAutohide
+                    if (j && j.animationSpeed !== undefined) g.animationSpeed = j.animationSpeed
                 } catch (e) {}
             }
         }

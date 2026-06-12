@@ -51,8 +51,11 @@ QtObject {
     readonly property int gap:          8
     readonly property int barHeight:    28
 
-    // ── Motion (ms) — quick, ease-out, macOS-like ─────────────────────────
-    readonly property int durFast:   120
-    readonly property int durBase:   180
-    readonly property int durSlow:   260
+    // ── Motion (ms) — quick, ease-out, macOS-like. Scaled by the global
+    //    animation-speed setting (>1 faster, 0 = instant) so the whole shell
+    //    tracks the Settings → Theme → Animations control. ──────────────────
+    readonly property real _animMul: Globals.animationSpeed
+    readonly property int durFast:   _animMul <= 0 ? 0 : Math.round(120 / _animMul)
+    readonly property int durBase:   _animMul <= 0 ? 0 : Math.round(180 / _animMul)
+    readonly property int durSlow:   _animMul <= 0 ? 0 : Math.round(260 / _animMul)
 }
