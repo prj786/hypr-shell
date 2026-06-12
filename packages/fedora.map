@@ -14,6 +14,7 @@ mise                     BUILD
 zram-generator           zram-generator-defaults
 gcc                      gcc gcc-c++
 git-build                SKIP
-# hyprland/quickshell/hypridle/hyprlock/hyprpicker come from the COPRs (phase 10).
+# hyprland/hypridle/hyprlock/hyprpicker come from COPR ashbuk/Hyprland-Fedora
+# (phase 10) — Lua-capable 0.55+. quickshell is in Fedora's official repos.
 # steam needs RPM Fusion (phase 10); ghostty/satty/gpu-screen-recorder install if
 # present, else --skip-unavailable drops them silently.

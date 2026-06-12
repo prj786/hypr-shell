@@ -26,8 +26,10 @@ phase_repos() {
         fedora)
             sudo_run dnf install -y dnf5-plugins 2>/dev/null \
                 || sudo_run dnf install -y dnf-plugins-core
-            sudo_run dnf -y copr enable solopasha/hyprland       || warn "copr solopasha/hyprland failed"
-            sudo_run dnf -y copr enable errornointernet/quickshell || warn "copr quickshell failed"
+            # ashbuk/Hyprland-Fedora ships Hyprland 0.55+ (Lua-capable). Do NOT use
+            # solopasha/hyprland — it lagged at 0.51 (pre-Lua) and breaks hyprland.lua.
+            sudo_run dnf -y copr enable ashbuk/Hyprland-Fedora || warn "copr ashbuk/Hyprland-Fedora failed"
+            # Quickshell is in Fedora's official repos — no COPR needed.
             # RPM Fusion (steam, gpu-screen-recorder)
             local rel; rel="$(rpm -E %fedora 2>/dev/null || echo 41)"
             sudo_run dnf install -y \

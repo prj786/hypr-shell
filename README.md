@@ -51,7 +51,7 @@ genuinely safe and the whole thing is re-runnable.
 
 | Tier | Distros | Hyprland / Quickshell source |
 |------|---------|------------------------------|
-| **1 — best** | Arch, Fedora | Arch `extra` + AUR · Fedora COPRs (`solopasha/hyprland`, `errornointernet/quickshell`) |
+| **1 — best** | Arch, Fedora | Arch `extra` + AUR · Fedora COPR `ashbuk/Hyprland-Fedora` (Lua-capable 0.55+; **not** solopasha, which lags pre-Lua) + Quickshell from official repos |
 | **2** | openSUSE Tumbleweed | OBS `X11:Wayland` |
 | **3 — advanced** | Debian / Ubuntu | **not packaged** — built from pinned `VERSIONS` tags, *or* run the DE in a **distrobox Arch** container (recommended) |
 
