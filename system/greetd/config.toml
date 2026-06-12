@@ -10,9 +10,9 @@ vt = "next"
 # cage -s prints its socket info and runs regreet fullscreen; regreet talks to
 # greetd over $GREETD_SOCK to authenticate and launch the chosen session.
 #
-# WLR_NO_HARDWARE_CURSORS=1 disables the wlroots hardware-cursor plane for cage.
-# This fixes the inverted / upside-down pointer under virtio-gpu (QEMU/KVM) and
-# the flaky `xe` cursor plane on Lunar Lake — both render a broken HW cursor.
-# Cost is negligible for a greeter; safe on every GPU.
-command = "env WLR_NO_HARDWARE_CURSORS=1 cage -s -- regreet"
+# Keep this a bare command — greetd word-splits it itself, so an `env VAR=… `
+# prefix gets mis-parsed ("cage: invalid option"). The wlroots env that fixes
+# the inverted virtio / flaky `xe` cursor is set on greetd.service via the
+# drop-in installed by phase 30 (cage inherits the service environment).
+command = "cage -s -- regreet"
 user = "greeter"

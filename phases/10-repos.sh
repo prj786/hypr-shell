@@ -14,6 +14,17 @@ _enable_multilib() {
     sudo_run pacman -Sy
 }
 
+_sync_system() {
+    # Full upgrade BEFORE building/installing anything. A fresh archinstall box
+    # carries an older pacman/libalpm than the live repos; installing prebuilt
+    # AUR helpers (paru-bin links libalpm.so.N) or new packages onto it triggers
+    # "libalpm.so.NN: cannot open shared object file" and other partial-upgrade
+    # breakage. -Syu brings the whole system to a consistent state first.
+    if [ "${DRY_RUN:-0}" = "1" ]; then info "would run pacman -Syu (full system upgrade)"; return; fi
+    info "full system upgrade (pacman -Syu) — avoids partial-upgrade / soname mismatches"
+    sudo_run pacman -Syu --noconfirm || warn "pacman -Syu reported errors — review before continuing."
+}
+
 _bootstrap_aur() {
     if command -v paru >/dev/null 2>&1; then AUR_HELPER=paru; export AUR_HELPER; ok "AUR helper present (paru)"; return; fi
     if command -v yay  >/dev/null 2>&1; then AUR_HELPER=yay;  export AUR_HELPER; ok "AUR helper present (yay)";  return; fi
@@ -37,6 +48,7 @@ _bootstrap_aur() {
 phase_repos() {
     step "10 · repositories"
     _enable_multilib
+    _sync_system
     _bootstrap_aur
     ok "repositories ready"
 }

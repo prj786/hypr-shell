@@ -40,12 +40,23 @@ phase_services() {
     if command -v greetd >/dev/null 2>&1 || pkg_present greetd; then
         sudo_run install -d /etc/greetd
         sudo_run install -m 644 "$DOTREPO/system/greetd/config.toml"  /etc/greetd/config.toml  && ok "installed greetd config"
-        # In a VM the virgl GL path can be too marginal for cage to bring up a
-        # surface; allow wlroots software rendering for the greeter only there.
-        # (The real session already has its own DE_SOFTWARE_RENDER escape hatch.)
-        if [ "${IS_VM:-0}" = "1" ]; then
-            sudo_run sed -i 's|command = "env |command = "env WLR_RENDERER_ALLOW_SOFTWARE=1 |' /etc/greetd/config.toml \
-                && ok "VM detected — greeter allowed to fall back to software rendering."
+        # Environment for the greeter (cage), set on greetd.service so cage —
+        # which greetd execs as a child — inherits it. Done as a drop-in rather
+        # than an `env …` prefix in config.toml's command (greetd word-splits the
+        # command and mis-parses such a prefix).
+        #   WLR_NO_HARDWARE_CURSORS — fixes the inverted virtio-gpu pointer and
+        #     the flaky `xe` cursor plane on Lunar Lake.
+        #   WLR_RENDERER_ALLOW_SOFTWARE (VM only) — lets cage fall back to
+        #     software GL when the guest's virgl path can't allocate a surface.
+        sudo_run install -d /etc/systemd/system/greetd.service.d
+        local dropin="[Service]
+Environment=WLR_NO_HARDWARE_CURSORS=1"
+        [ "${IS_VM:-0}" = "1" ] && dropin="$dropin
+Environment=WLR_RENDERER_ALLOW_SOFTWARE=1"
+        if [ "${DRY_RUN:-0}" = "1" ]; then info "would write /etc/systemd/system/greetd.service.d/hypr-shell.conf"
+        else printf '%s\n' "$dropin" | sudo_run tee /etc/systemd/system/greetd.service.d/hypr-shell.conf >/dev/null \
+            && ok "installed greetd.service drop-in (cursor${IS_VM:+ + VM software-render} env)"
+            sudo_run systemctl daemon-reload 2>/dev/null || true
         fi
         sudo_run install -m 644 "$DOTREPO/system/greetd/regreet.toml" /etc/greetd/regreet.toml && ok "installed ReGreet config"
         # PAM keyring unlock: login keyring opens with your password at the greeter,
