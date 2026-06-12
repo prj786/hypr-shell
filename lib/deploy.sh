@@ -31,7 +31,23 @@ link_tree() {
     ok "linked $dest -> $src"
 }
 
+# seed_state — populate gitignored user-state files from their .default template
+# only when absent, so a fresh clone has working defaults and re-runs never
+# clobber the user's own theme/pins/overrides.
+seed_state() {
+    local f
+    for f in "$DOTREPO/dotfiles/quickshell/user-theme.json" \
+             "$DOTREPO/dotfiles/quickshell/pinned-apps.json" \
+             "$DOTREPO/dotfiles/hypr/generated/user.lua"; do
+        [ -e "$f" ] && continue
+        [ -e "$f.default" ] || continue
+        run cp "$f.default" "$f"
+        ok "seeded $(basename "$f") from default"
+    done
+}
+
 deploy_dotfiles() {
+    seed_state
     link_tree "$DOTREPO/dotfiles/hypr"       "$HOME/.config/hypr"
     link_tree "$DOTREPO/dotfiles/quickshell" "$HOME/.config/quickshell"
 
