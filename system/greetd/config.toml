@@ -9,5 +9,10 @@ vt = "next"
 [default_session]
 # cage -s prints its socket info and runs regreet fullscreen; regreet talks to
 # greetd over $GREETD_SOCK to authenticate and launch the chosen session.
-command = "cage -s -- regreet"
+#
+# WLR_NO_HARDWARE_CURSORS=1 disables the wlroots hardware-cursor plane for cage.
+# This fixes the inverted / upside-down pointer under virtio-gpu (QEMU/KVM) and
+# the flaky `xe` cursor plane on Lunar Lake — both render a broken HW cursor.
+# Cost is negligible for a greeter; safe on every GPU.
+command = "env WLR_NO_HARDWARE_CURSORS=1 cage -s -- regreet"
 user = "greeter"

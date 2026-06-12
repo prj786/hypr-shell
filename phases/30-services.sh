@@ -48,10 +48,17 @@ phase_services() {
         else
             info "gnome-keyring not present — skipped greetd PAM keyring integration."
         fi
-        command -v regreet >/dev/null 2>&1 || pkg_present greetd-regreet \
-            || warn "regreet not installed yet (AUR) — greetd will fail to start a greeter until it is. Re-run after the AUR build, or it was installed in phase 20."
-        _enable_system greetd.service
-        info "greetd is the greeter (cage → ReGreet) and lists 'Hyprland (DE)'. Disable any other display-manager.service first."
+        # Only enable greetd if the greeter binary actually exists. cage's
+        # "Failed to spawn client: No such file or directory" means regreet is
+        # missing — booting straight into that is a black/looping greeter, so we
+        # refuse to enable the service and tell the user how to finish.
+        if command -v regreet >/dev/null 2>&1 || pkg_present greetd-regreet; then
+            _enable_system greetd.service
+            info "greetd is the greeter (cage → ReGreet) and lists 'Hyprland (DE)'. Disable any other display-manager.service first."
+        else
+            warn "regreet NOT installed (AUR build skipped or failed) — NOT enabling greetd.service to avoid a broken boot."
+            warn "Finish with:  $AUR_HELPER -S greetd-regreet  &&  sudo systemctl enable greetd.service"
+        fi
     else
         warn "greetd not installed — start the session from a TTY with start-hyprland.sh, or enable a greeter."
     fi

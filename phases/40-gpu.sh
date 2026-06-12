@@ -40,6 +40,7 @@ phase_gpu() {
             info "NVIDIA: add env in hypr/conf.d — LIBVA_DRIVER_NAME=nvidia, __GL_GSYNC_ALLOWED=1, AQ_DRM_DEVICES if multi-GPU." ;;
     esac
 
+    [ "$GPU_VENDOR" = "virtual" ] && ok "virtual GPU (VM) — mesa-only is correct; no vendor (intel/amd/nvidia) drivers installed."
     [ "$GPU_VENDOR" = "unknown" ] && warn "no GPU detected (no lspci?) — installed mesa only."
     ok "GPU phase done"
 }

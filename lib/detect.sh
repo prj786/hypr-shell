@@ -36,14 +36,26 @@ detect_chassis() {
 
 detect_gpu() {
     GPU_VENDOR=""
+    IS_VM=0
+    # Virtual machine? A virtio/QEMU/VMware vGPU has no vendor ICD — it must use
+    # plain mesa (the host does the real GL via virgl). Detect this first so we
+    # never try to install nvidia/intel/amd drivers for a paravirtual GPU.
+    if command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt -q 2>/dev/null; then
+        IS_VM=1
+    fi
     local out=""
     command -v lspci >/dev/null 2>&1 && out="$(lspci -nn 2>/dev/null | grep -iE 'vga|3d|display')"
+    case "$out" in *Virtio*|*"Red Hat"*|*QXL*|*VMware*|*"Cirrus"*|*"Bochs"*) IS_VM=1 ;; esac
     case "$out" in *[Ii]ntel*) GPU_VENDOR="$GPU_VENDOR intel" ;; esac
     case "$out" in *AMD*|*ATI*|*Radeon*) GPU_VENDOR="$GPU_VENDOR amd" ;; esac
     case "$out" in *NVIDIA*|*nVidia*) GPU_VENDOR="$GPU_VENDOR nvidia" ;; esac
     GPU_VENDOR="$(echo "$GPU_VENDOR" | xargs)"
+    # In a VM, the only correct GPU stack is mesa — force vendor to "virtual" so
+    # phase 40 installs nothing vendor-specific (passing through a host Intel iGPU
+    # via virgl must NOT pull intel-vulkan into the guest).
+    [ "$IS_VM" = "1" ] && GPU_VENDOR="virtual"
     [ -z "$GPU_VENDOR" ] && GPU_VENDOR="unknown"
-    export GPU_VENDOR
+    export GPU_VENDOR IS_VM
 }
 
 detect_all() {
