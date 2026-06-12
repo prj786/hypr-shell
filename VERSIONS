@@ -1,0 +1,11 @@
+# Pinned stable versions — "stable only" is enforced here.
+# Repo-packaged distros (Arch/Fedora/openSUSE) track their stable repo/COPR/OBS
+# builds. Only the from-source tier (Debian/Ubuntu) checks these tags out.
+# Never set any of these to a branch name (main/master) or a -git ref.
+hyprland=v0.51.1
+quickshell=v0.2.0
+hypridle=v0.1.6
+hyprlock=v0.9.0
+hyprpicker=v0.4.4
+swww=v0.10.3
+satty=0.20.1

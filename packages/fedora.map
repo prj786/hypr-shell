@@ -1,0 +1,19 @@
+# fedora.map — Fedora (repos + COPRs from phase 10 + RPM Fusion for steam).
+# OVERRIDES ONLY. SKIP = not packaged (covered elsewhere); BUILD = from source.
+pipewire-pulse           pipewire-pulseaudio
+networkmanager           NetworkManager
+bluez-utils              SKIP
+greetd-regreet           SKIP
+vim                      vim-enhanced
+adw-gtk3                 adw-gtk3-theme
+bibata-cursor-theme      SKIP
+inter-font               rsms-inter-fonts
+ttf-jetbrains-mono-nerd  jetbrains-mono-fonts
+noto-fonts-georgian      google-noto-sans-georgian-fonts
+mise                     BUILD
+zram-generator           zram-generator-defaults
+gcc                      gcc gcc-c++
+git-build                SKIP
+# hyprland/quickshell/hypridle/hyprlock/hyprpicker come from the COPRs (phase 10).
+# steam needs RPM Fusion (phase 10); ghostty/satty/gpu-screen-recorder install if
+# present, else --skip-unavailable drops them silently.

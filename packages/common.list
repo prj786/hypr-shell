@@ -1,0 +1,80 @@
+# common.list — canonical (generic) package names, one per line.
+# Native translation per distro lives in packages/<family>.map (overrides only).
+# Names here are the Arch/Fedora spelling where they agree; maps fix the rest.
+
+# ── core session ────────────────────────────────────────────────────────────
+hyprland
+quickshell
+hypridle
+hyprlock
+xdg-desktop-portal
+xdg-desktop-portal-hyprland
+xdg-desktop-portal-gtk
+polkit
+gnome-keyring
+greetd
+greetd-regreet
+
+# ── audio / network / bluetooth / power ──────────────────────────────────────
+pipewire
+wireplumber
+pipewire-pulse
+networkmanager
+bluez
+bluez-utils
+blueman
+power-profiles-daemon
+
+# ── desktop essentials ───────────────────────────────────────────────────────
+ghostty
+foot
+nautilus
+gvfs
+udisks2
+firefox
+neovim
+vim
+
+# ── utilities ────────────────────────────────────────────────────────────────
+swaybg
+swww
+grim
+slurp
+satty
+gpu-screen-recorder
+cliphist
+wl-clipboard
+hyprpicker
+brightnessctl
+playerctl
+
+# ── theming / fonts ──────────────────────────────────────────────────────────
+adw-gtk3
+qt6ct
+kvantum
+papirus-icon-theme
+bibata-cursor-theme
+inter-font
+ttf-jetbrains-mono-nerd
+noto-fonts-georgian
+
+# ── dev tooling ──────────────────────────────────────────────────────────────
+git
+git-delta
+lazygit
+mise
+podman
+
+# ── gaming ───────────────────────────────────────────────────────────────────
+gamemode
+mangohud
+steam
+
+# ── system tuning ────────────────────────────────────────────────────────────
+zram-generator
+
+# ── build deps (for the from-source tier + plugins) ──────────────────────────
+gcc
+cmake
+meson
+git-build

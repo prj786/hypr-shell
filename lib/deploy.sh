@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# lib/deploy.sh — symlink dotfiles into ~/.config with timestamped backups.
+#
+# Why a symlink farm and not `cp`: re-runnable (re-linking is a no-op), trivial
+# to see what's managed (`ls -l ~/.config/hypr` shows the repo target), and
+# clean to remove (uninstall just unlinks + restores the backup). Why not GNU
+# stow: it isn't installed on a minimal base and its tree-folding surprises on
+# configs that mix managed + user-written files (our generated/user.lua etc.).
+
+# BACKUP_DIR is stamped once per run (timestamp passed in from install.sh so a
+# --dry-run and a real run don't drift, and resume is deterministic).
+backup_path() { printf '%s/%s.bak.%s' "$(dirname "$1")" "$(basename "$1")" "$RUN_STAMP"; }
+
+# link_tree <src-dir> <dest-dir> — symlink dest-dir -> src-dir, backing up any
+# pre-existing real dir/file/link at dest first.
+link_tree() {
+    local src="$1" dest="$2"
+    [ -d "$src" ] || { warn "payload missing: $src"; return 1; }
+    run mkdir -p "$(dirname "$dest")"
+    if [ -L "$dest" ]; then
+        local cur; cur="$(readlink -f "$dest" 2>/dev/null)"
+        if [ "$cur" = "$(readlink -f "$src")" ]; then ok "already linked: $dest"; return 0; fi
+        info "replacing stale symlink: $dest"
+        run rm -f "$dest"
+    elif [ -e "$dest" ]; then
+        local bak; bak="$(backup_path "$dest")"
+        info "backing up existing $dest -> $bak"
+        run mv "$dest" "$bak"
+    fi
+    run ln -s "$src" "$dest"
+    ok "linked $dest -> $src"
+}
+
+deploy_dotfiles() {
+    link_tree "$DOTREPO/dotfiles/hypr"       "$HOME/.config/hypr"
+    link_tree "$DOTREPO/dotfiles/quickshell" "$HOME/.config/quickshell"
+
+    # systemd user unit (the portal-activation fix) is copied, not symlinked —
+    # systemd resolves symlinks oddly for unit files and `daemon-reload` is cheap.
+    run mkdir -p "$HOME/.config/systemd/user"
+    run cp -f "$DOTREPO/systemd/hyprland-session.target" "$HOME/.config/systemd/user/"
+    run systemctl --user daemon-reload 2>/dev/null || true
+    ok "installed hyprland-session.target (portal activation)"
+}

@@ -1,0 +1,18 @@
+# suse.map — openSUSE Tumbleweed (repos + OBS X11:Wayland from phase 10).
+# OVERRIDES ONLY.
+pipewire-pulse           pipewire-pulseaudio
+networkmanager           NetworkManager
+bluez-utils              SKIP
+greetd-regreet           SKIP
+firefox                  MozillaFirefox
+adw-gtk3                 SKIP
+kvantum                  kvantum-manager
+bibata-cursor-theme      SKIP
+inter-font               google-inter-fonts
+ttf-jetbrains-mono-nerd  jetbrains-mono-fonts
+noto-fonts-georgian      google-noto-sans-georgian-fonts
+mise                     BUILD
+gcc                      gcc gcc-c++
+git-build                SKIP
+# hyprland/quickshell/hypridle/hyprlock/hyprpicker via OBS (phase 10);
+# steam via Packman; ghostty/satty install if present.

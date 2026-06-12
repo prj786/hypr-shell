@@ -1,0 +1,8 @@
+# arch.map — Arch (extra/multilib + AUR). OVERRIDES ONLY; unlisted generic name
+# is used verbatim. AUR names (greetd-regreet, bibata-cursor-theme, satty,
+# gpu-screen-recorder) require the AUR helper bootstrapped in phase 10.
+adw-gtk3              adw-gtk-theme
+noto-fonts-georgian  noto-fonts
+git-build            base-devel
+# (hyprland, quickshell, ghostty, swww, mise, hypridle, hyprlock, hyprpicker
+#  are all in extra; bluez-utils is a real package here — no override needed.)

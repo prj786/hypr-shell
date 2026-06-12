@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# autostart.sh — one-shot session bring-up, run by the hyprland.start hook.
+#
+# Idempotent by construction: every daemon is guarded with `pgrep` and every
+# optional program with `command -v`, so re-running it (e.g. after `hyprctl
+# reload`) never double-spawns anything. Ported from the old Qtile autostart.sh.
+
+set -u
+
+# run_once <pgrep-pattern> <command...> — start only if not already running.
+run_once() {
+    local pat="$1"; shift
+    command -v "$1" >/dev/null 2>&1 || return 0
+    pgrep -f "$pat" >/dev/null 2>&1 && return 0
+    "$@" >/dev/null 2>&1 &
+}
+
+# ── Export the session env into the systemd user + DBus activation env so ─────
+# DBus-activated services (xdg-desktop-portal, screen sharing) inherit
+# WAYLAND_DISPLAY / XDG_CURRENT_DESKTOP=Hyprland etc.
+if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+    dbus-update-activation-environment --systemd --all >/dev/null 2>&1 || true
+fi
+
+# ── Activate the systemd graphical session ───────────────────────────────────
+# Custom start-hyprland.sh doesn't go through uwsm, so graphical-session.target
+# never came up — which left xdg-desktop-portal dead (its Requisite). Starting
+# hyprland-session.target (BindsTo=graphical-session.target) pulls it active and
+# brings the portals up. Without this, Flatpak apps can't open the browser and
+# the browser can't hand back slack:// (Slack sign-in did nothing).
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user start hyprland-session.target >/dev/null 2>&1 || true
+fi
+
+# Polkit authentication agent is now Quickshell's own (Auth.qml) — no
+# lxqt-policykit-agent / polkit-gnome (only one agent may register per session).
+
+# ── Wallpaper (swaybg) ───────────────────────────────────────────────────────
+"$HOME/.config/hypr/scripts/wallpaper.sh" >/dev/null 2>&1 &
+
+# ── Quickshell (the macOS-style QML shell: top bar + Spotlight launcher) ──────
+if command -v qs >/dev/null 2>&1 && ! pgrep -x qs >/dev/null 2>&1; then
+    qs >/dev/null 2>&1 &
+fi
+
+# ── Clipboard history recorder (feeds the scissors-icon popup) ────────────────
+# Two watchers (text + images); guarded separately so both always come up.
+if command -v cliphist >/dev/null 2>&1 && command -v wl-paste >/dev/null 2>&1; then
+    pgrep -f "wl-paste --type text --watch cliphist"  >/dev/null 2>&1 || \
+        wl-paste --type text  --watch cliphist store >/dev/null 2>&1 &
+    pgrep -f "wl-paste --type image --watch cliphist" >/dev/null 2>&1 || \
+        wl-paste --type image --watch cliphist store >/dev/null 2>&1 &
+fi
+
+# Notifications + network/bluetooth indicators are now handled natively by
+# Quickshell (NotificationServer + the bar's own modules) — no swaync, no
+# nm-applet/blueman-applet tray icons (those duplicated the bar).
+
+# ── Per-window keyboard layout (GNOME-style): remembers US vs Georgian per ────
+# window and restores it on focus. Self-contained Python daemon (no extra deps).
+run_once "kb-per-window.py" python3 "$HOME/.config/hypr/scripts/kb-per-window.py"
+
+# ── Idle / lock: prefer hypridle if you later add a config, else swayidle ─────
+LOCK="$HOME/.config/hypr/scripts/lock.sh"
+if command -v hypridle >/dev/null 2>&1 && [ -r "$HOME/.config/hypr/hypridle.conf" ]; then
+    run_once hypridle hypridle
+elif command -v swayidle >/dev/null 2>&1 && ! pgrep -x swayidle >/dev/null 2>&1; then
+    swayidle -w \
+        timeout 300 "$LOCK" \
+        timeout 600 'hyprctl dispatch dpms off' \
+        resume       'hyprctl dispatch dpms on' \
+        before-sleep "$LOCK" >/dev/null 2>&1 &
+fi
+
+exit 0

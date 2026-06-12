@@ -1,0 +1,379 @@
+-- ╔══════════════════════════════════════════════════════════════════════════╗
+-- ║  hyprland.lua — Hyprland 0.55+ Lua configuration                           ║
+-- ║                                                                            ║
+-- ║  Ported from the previous Qtile `desktop_env` so muscle memory carries     ║
+-- ║  over: Super is the mod, focus is vim hjkl, workspaces are 1–8, and the    ║
+-- ║  laptop media / screenshot / lock keys behave identically.                 ║
+-- ║                                                                            ║
+-- ║  Reload:        Super + Ctrl + R   (Hyprland also auto-reloads on save)    ║
+-- ║  All shortcuts: ~/.config/hypr/SHORTCUTS.md                                ║
+-- ║  Colours:       ~/.config/hypr/colors.lua  (Gruvbox, single source)        ║
+-- ╚══════════════════════════════════════════════════════════════════════════╝
+
+local c        = require("colors")
+local home     = os.getenv("HOME")
+local scripts  = home .. "/.config/hypr/scripts"
+
+-- Core programs (mirror the old settings.py defaults) ------------------------
+local terminal    = "foot"
+local fileManager = "nautilus"
+local browser     = "firefox"
+local spotlight   = "qs ipc call spotlight toggle"  -- Quickshell launcher (QML)
+
+local mainMod = "SUPER"   -- the Super / Windows key
+
+
+-- ╭───────────────────────────────────────────────────────────────╮
+-- │ MONITORS — https://wiki.hypr.land/Configuring/Basics/Monitors/  │
+-- ╰───────────────────────────────────────────────────────────────╯
+-- Dual display, macOS-style with the external on the LEFT.
+--   * DP-1 (Samsung 27", 2560x1440) anchored at the far left (0x0), scale 1.
+--   * eDP-1 (laptop, 2880x1800 HiDPI) auto-placed to its right, scale 2 → 1440
+--     logical px, so its left edge sits at x=2560 (DP-1's logical width).
+-- Declaration order matters: DP-1 first claims 0x0, then eDP-1 "auto" lands to
+-- its right. Unplug the external and eDP-1's "auto" falls back to 0x0 cleanly.
+hl.monitor({ output = "DP-1",  mode = "preferred", position = "0x0",  scale = 1 })
+hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = 2 })
+
+-- Catch-all for any other display plugged in later.
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
+
+
+-- ╭───────────────────────────────────────────────────────────────╮
+-- │ ENVIRONMENT — ported from the Qtile session-env.sh             │
+-- │ Every Hyprland child (Waybar, swaync, apps) inherits these.    │
+-- ╰───────────────────────────────────────────────────────────────╯
+-- Cursor (XCursor for XWayland + clients without a hyprcursor theme).
+hl.env("XCURSOR_THEME", "Adwaita")
+hl.env("XCURSOR_SIZE", "24")
+hl.env("HYPRCURSOR_SIZE", "24")
+
+-- Qt: prefer Wayland, fall back to xcb (XWayland); theme via qt6ct so the
+-- adw-gtk3 colours carry into Qt apps; let the compositor draw decorations.
+hl.env("QT_QPA_PLATFORM", "wayland;xcb")
+hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
+hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
+hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
+
+-- GTK / GDK, SDL, Clutter, Mozilla, Java — opt into Wayland where supported.
+hl.env("GDK_BACKEND", "wayland,x11")
+hl.env("SDL_VIDEODRIVER", "wayland")
+hl.env("CLUTTER_BACKEND", "wayland")
+hl.env("MOZ_ENABLE_WAYLAND", "1")
+hl.env("_JAVA_AWT_WM_NONREPARENTING", "1")
+
+
+-- ╭───────────────────────────────────────────────────────────────╮
+-- │ LOOK & FEEL — https://wiki.hypr.land/Configuring/Basics/        │
+-- ╰───────────────────────────────────────────────────────────────╯
+hl.config({
+    general = {
+        gaps_in     = 6,
+        gaps_out    = 14,
+        border_size = 1,           -- macOS has no chunky borders; the shadow carries the depth
+
+        -- Active border: Gruvbox yellow → orange gradient. Inactive: a quiet
+        -- surface tone so unfocused windows recede.
+        col = {
+            active_border   = { colors = { c.rgba(c.yellow, 0xee), c.rgba(c.orange, 0xee) }, angle = 45 },
+            inactive_border = c.rgba(c.bg2, 0xaa),
+        },
+
+        resize_on_border = true,
+        allow_tearing    = false,
+        layout           = "dwindle",
+    },
+
+    decoration = {
+        rounding       = 12,   -- Big Sur / Sequoia corner radius
+        rounding_power = 2,
+
+        active_opacity   = 1.0,
+        inactive_opacity = 0.97,  -- a hair of depth on unfocused windows
+
+        -- Big soft drop shadow — the single biggest "this looks like macOS" cue.
+        -- Large range, low alpha = the diffuse macOS shadow (not a hard outline).
+        shadow = {
+            enabled      = true,
+            range        = 26,
+            render_power = 3,
+            color        = 0x40000000,  -- 0xAARRGGBB: ~25% black, soft
+        },
+
+        -- Frosted-glass blur behind translucent surfaces (the Quickshell bar,
+        -- the Spotlight launcher, swaync).
+        blur = {
+            enabled  = true,
+            size     = 6,
+            passes   = 3,
+            vibrancy = 0.1696,
+        },
+    },
+
+    dwindle = {
+        preserve_split = true,
+    },
+
+    misc = {
+        disable_hyprland_logo   = true,
+        force_default_wallpaper = 0,
+    },
+
+    -- Cursor on Lunar Lake / Arc 140V (`xe` driver). Two failure modes exist:
+    --   * pure hardware cursor  → drmModeAtomicCommit "Invalid argument" freeze
+    --     (the GPU cursor-buffer path on `xe` is broken / PSR2 selective-fetch);
+    --   * pure software cursor (no_hardware_cursors=true) → a stale "ghost"
+    --     copy of the pointer left stuck on screen (what you saw).
+    -- The fix that avoids BOTH is a hardware cursor plane fed from a CPU-mapped
+    -- (dumb) buffer: keep hardware cursors ON, but force the CPU buffer so we
+    -- never touch the broken GPU cursor-buffer path.
+    cursor = {
+        no_hardware_cursors = false,
+        use_cpu_buffer      = true,
+        inactive_timeout    = 5,   -- hide the pointer after 5s idle
+    },
+})
+
+-- Quiet the ecosystem startup nags (update news / donation popups).
+hl.config({
+    ecosystem = {
+        no_update_news  = true,
+        no_donation_nag = true,
+    },
+})
+
+
+-- ╭───────────────────────────────────────────────────────────────╮
+-- │ WINDOW GROUPS (tabbed stacks) — themed to match Theme.qml       │
+-- ╰───────────────────────────────────────────────────────────────╯
+-- Window grouping is intentionally unused in this DE — the Lua config doesn't
+-- expose the merge dispatchers (moveintogroup/movewindoworgroup), so we removed
+-- the group keybinds and chrome. Workspace navigation lives in the bottom dock.
+
+
+-- ── Animations: smooth, slightly snappy; workspaces slide like macOS Spaces ──
+hl.curve("easeOutQuint",   { type = "bezier", points = { {0.23, 1},    {0.32, 1} } })
+hl.curve("easeInOutCubic", { type = "bezier", points = { {0.65, 0.05}, {0.36, 1} } })
+hl.curve("linear",         { type = "bezier", points = { {0, 0},       {1, 1} } })
+hl.curve("almostLinear",   { type = "bezier", points = { {0.5, 0.5},   {0.75, 1} } })
+hl.curve("quick",          { type = "bezier", points = { {0.15, 0},    {0.1, 1} } })
+hl.curve("easy",           { type = "spring", mass = 1, stiffness = 71.2633, dampening = 15.8273644 })
+
+hl.config({ animations = { enabled = true } })
+
+hl.animation({ leaf = "global",     enabled = true, speed = 9,    bezier = "easeOutQuint" })
+hl.animation({ leaf = "border",     enabled = true, speed = 5.39, bezier = "easeOutQuint" })
+hl.animation({ leaf = "windows",    enabled = true, speed = 5,    spring = "easy",         style = "popin 88%" })
+hl.animation({ leaf = "windowsOut", enabled = true, speed = 3,    bezier = "linear",       style = "popin 88%" })
+hl.animation({ leaf = "fade",       enabled = true, speed = 3.5,  bezier = "quick" })
+hl.animation({ leaf = "layers",     enabled = true, speed = 4,    bezier = "easeOutQuint", style = "fade" })
+hl.animation({ leaf = "workspaces", enabled = true, speed = 5,    bezier = "easeOutQuint", style = "slide" })
+
+
+-- ╭───────────────────────────────────────────────────────────────╮
+-- │ INPUT                                                          │
+-- ╰───────────────────────────────────────────────────────────────╯
+hl.config({
+    input = {
+        -- US first (so Super-key binds resolve against it), Georgian second.
+        -- Toggle with Super+Shift+Space (see keybinds). GNOME-style *per-window*
+        -- memory needs the hyprland-per-window-layout daemon — installed by
+        -- install.sh; until then this is a global toggle.
+        kb_layout    = "us,ge",
+        kb_variant   = ",",
+        kb_model     = "",
+        kb_options   = "",
+        kb_rules     = "",
+
+        follow_mouse = 1,          -- focus follows the pointer (matches Qtile)
+        sensitivity  = 0,          -- -1.0 .. 1.0, 0 = unmodified
+
+        touchpad = {
+            natural_scroll = true, -- macOS-style "content follows fingers"
+        },
+    },
+})
+
+-- Three-finger horizontal swipe → switch workspaces (macOS Spaces gesture).
+hl.gesture({
+    fingers   = 3,
+    direction = "horizontal",
+    action    = "workspace",
+})
+
+
+-- ╭───────────────────────────────────────────────────────────────╮
+-- │ KEYBINDINGS — ported from desktop_env/keys/keybindings.py       │
+-- ╰───────────────────────────────────────────────────────────────╯
+
+-- Launchers ------------------------------------------------------------------
+hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd(terminal))
+hl.bind(mainMod .. " + Space",  hl.dsp.exec_cmd(spotlight))  -- ⌘-Space Spotlight
+hl.bind(mainMod .. " + D",      hl.dsp.exec_cmd(spotlight))  -- same launcher (muscle memory)
+hl.bind(mainMod .. " + E",      hl.dsp.exec_cmd(fileManager))
+hl.bind(mainMod .. " + B",      hl.dsp.exec_cmd(browser))
+hl.bind(mainMod .. " + C",      hl.dsp.exec_cmd(scripts .. "/calendar.sh"))
+hl.bind(mainMod .. " + N",      hl.dsp.exec_cmd("qs ipc call control toggle"))  -- control centre
+hl.bind(mainMod .. " + comma",  hl.dsp.exec_cmd("qs ipc call settings toggle")) -- ⌘, Settings
+
+-- Super tapped ALONE → Overview (GNOME-style window switcher). `release` fires on key-up;
+-- with the modifier as its own key Hyprland only triggers it on a clean tap (no other key
+-- pressed during the hold), so Super+<x> combos don't pop the overview.
+hl.bind(mainMod .. " + Super_L", hl.dsp.exec_cmd("qs ipc call overview toggle"), { release = true })
+
+-- Window focus (vim hjkl) ----------------------------------------------------
+hl.bind(mainMod .. " + H", hl.dsp.focus({ direction = "left" }))
+hl.bind(mainMod .. " + L", hl.dsp.focus({ direction = "right" }))
+hl.bind(mainMod .. " + J", hl.dsp.focus({ direction = "down" }))
+hl.bind(mainMod .. " + K", hl.dsp.focus({ direction = "up" }))
+
+-- Move the focused window (Shift + hjkl) — directional movewindow via hyprctl.
+-- Lua config: the /dispatch IPC evaluates its arg as Lua, so exec_cmd "hyprctl
+-- dispatch movewindow l" fails. Use the typed hl.dsp.* dispatchers directly.
+hl.bind(mainMod .. " + SHIFT + H", hl.dsp.window.move({ direction = "l" }))
+hl.bind(mainMod .. " + SHIFT + L", hl.dsp.window.move({ direction = "r" }))
+hl.bind(mainMod .. " + SHIFT + J", hl.dsp.window.move({ direction = "d" }))
+hl.bind(mainMod .. " + SHIFT + K", hl.dsp.window.move({ direction = "u" }))
+
+-- Resize the focused window (Ctrl + hjkl) ------------------------------------
+hl.bind(mainMod .. " + CTRL + H", hl.dsp.window.resize({ x = -40, y = 0, relative = true }))
+hl.bind(mainMod .. " + CTRL + L", hl.dsp.window.resize({ x = 40,  y = 0, relative = true }))
+hl.bind(mainMod .. " + CTRL + K", hl.dsp.window.resize({ x = 0,  y = -40, relative = true }))
+hl.bind(mainMod .. " + CTRL + J", hl.dsp.window.resize({ x = 0,  y = 40, relative = true }))
+-- NOTE: the old Super+Shift+N "reset split" (splitratio exact 1.0) was removed — the
+-- `splitratio` dispatcher isn't exposed by the Lua API (not in hl.dsp; exec_raw/global
+-- silently no-op; the layoutmsg path rejects "exact"). Use Super+Ctrl+H/L to adjust the
+-- split manually instead.
+
+-- Window state ---------------------------------------------------------------
+hl.bind(mainMod .. " + Q",         hl.dsp.window.close())
+hl.bind(mainMod .. " + F",         hl.dsp.window.fullscreen({ mode = 0 }))  -- true fullscreen
+hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen({ mode = 1 }))  -- maximise
+hl.bind(mainMod .. " + V",         hl.dsp.window.float({ action = "toggle" }))  -- (moved off Space → Spotlight)
+hl.bind(mainMod .. " + SHIFT + V", hl.dsp.window.pseudo())
+hl.bind(mainMod .. " + T",         hl.dsp.layout("togglesplit"))                       -- dwindle split
+hl.bind(mainMod .. " + Tab",         hl.dsp.window.cycle_next())
+hl.bind(mainMod .. " + SHIFT + Tab", hl.dsp.window.cycle_next({ prev = true }))
+
+-- Session --------------------------------------------------------------------
+hl.bind(mainMod .. " + CTRL + R", hl.dsp.exec_cmd("hyprctl reload"))     -- reload config
+hl.bind(mainMod .. " + CTRL + Q", hl.dsp.exit())                         -- quit / log out
+hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd("qs ipc call bar toggle"))  -- toggle bar
+hl.bind(mainMod .. " + ALT + L",   hl.dsp.exec_cmd("qs ipc call lock lock"))  -- lock (Quickshell session lock)
+
+-- Laptop lid (clamshell via lid.sh). Needs logind HandleLidSwitch=ignore so logind
+-- doesn't also suspend. `l` flag = fire even while locked.
+hl.bind("switch:on:Lid Switch",  hl.dsp.exec_cmd(scripts .. "/lid.sh close"), { locked = true })
+hl.bind("switch:off:Lid Switch", hl.dsp.exec_cmd(scripts .. "/lid.sh open"),  { locked = true })
+hl.bind(mainMod .. " + SHIFT + Space", hl.dsp.exec_cmd("hyprctl switchxkblayout current next"))  -- US ↔ Georgian
+hl.bind(mainMod .. " + period",        hl.dsp.exec_cmd("qs ipc call clipboard toggle"))          -- clipboard + emoji
+
+-- Scratchpad (Hyprland "special" workspace) ----------------------------------
+-- Super+grave kept from Qtile muscle memory; Super+S is the Hyprland default.
+hl.bind(mainMod .. " + grave",     hl.dsp.workspace.toggle_special("scratch"))
+hl.bind(mainMod .. " + S",         hl.dsp.workspace.toggle_special("scratch"))
+hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:scratch" }))
+
+-- Workspaces 1–8 (Qtile groups) ----------------------------------------------
+--   Super + N         → switch to workspace N
+--   Super + Shift + N → move the focused window to workspace N (and follow)
+for i = 1, 8 do
+    hl.bind(mainMod .. " + " .. i,           hl.dsp.focus({ workspace = i }))
+    hl.bind(mainMod .. " + SHIFT + " .. i,   hl.dsp.window.move({ workspace = i }))
+end
+
+-- Scroll over an empty area / hold Super to cycle workspaces.
+hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
+hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))
+
+-- Mouse: Super + drag to move (LMB) / resize (RMB) ---------------------------
+hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
+hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+
+-- Media keys → WirePlumber / brightnessctl (fire while locked, auto-repeat) --
+hl.bind("XF86AudioRaiseVolume",  hl.dsp.exec_cmd("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
+hl.bind("XF86AudioLowerVolume",  hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),        { locked = true, repeating = true })
+hl.bind("XF86AudioMute",         hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),       { locked = true })
+hl.bind("XF86AudioMicMute",      hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),     { locked = true })
+hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+ && qs ipc call osd brightness"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%- && qs ipc call osd brightness"), { locked = true, repeating = true })
+hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })
+hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
+
+-- Screenshots → ~/Pictures/Screenshots + clipboard (grim/slurp/wl-copy) ------
+hl.bind("Print",           hl.dsp.exec_cmd(scripts .. "/screenshot.sh full"))
+hl.bind("SHIFT + Print",   hl.dsp.exec_cmd(scripts .. "/screenshot.sh region"))
+hl.bind(mainMod .. " + Print", hl.dsp.exec_cmd(scripts .. "/screenshot.sh activewindow"))  -- focused window
+
+
+-- ╭───────────────────────────────────────────────────────────────╮
+-- │ WINDOW RULES — https://wiki.hypr.land/Configuring/Basics/...    │
+-- ╰───────────────────────────────────────────────────────────────╯
+-- Ignore maximize requests from all apps (keeps the tiling layout sane).
+hl.window_rule({
+    name           = "suppress-maximize",
+    match          = { class = ".*" },
+    suppress_event = "maximize",
+})
+
+-- Float + centre the usual transient/utility windows.
+for _, klass in ipairs({
+    "pavucontrol", "org.pulseaudio.pavucontrol",
+    "nm-connection-editor", "blueman-manager",
+    "org.gnome.Calculator", "org.gnome.FileRoller", "file-roller",
+}) do
+    hl.window_rule({ name = "float-" .. klass, match = { class = klass }, float = true })
+end
+
+-- Firefox / browser picture-in-picture: small floating, pinned across spaces.
+hl.window_rule({
+    name  = "pip-float",
+    match = { title = "Picture-in-Picture" },
+    float = true,
+    pin   = true,
+})
+
+-- Fix XWayland drag ghosts (from the upstream example).
+hl.window_rule({
+    name     = "fix-xwayland-drags",
+    match    = { class = "^$", title = "^$", xwayland = true, float = true, fullscreen = false, pin = false },
+    no_focus = true,
+})
+
+
+-- ╭───────────────────────────────────────────────────────────────╮
+-- │ LAYER RULES — real frosted glass on the shell surfaces          │
+-- ╰───────────────────────────────────────────────────────────────╯
+-- ignore_alpha = 0.1 means only the actually-painted (translucent) panel gets
+-- blurred behind; the fully-transparent full-screen overlay around the
+-- Spotlight panel is left clear (no whole-screen frost).
+-- Spotlight is solid now (Theme.panel) — no blur/glass.
+-- Bar is solid now (Theme.bg) — no blur/glass.
+-- All Quickshell surfaces are solid now (colours from Theme.qml) — no blur/glass.
+
+-- EXCEPT the Overview: its scrim is translucent on purpose, so blur the desktop behind it.
+hl.layer_rule({ match = { namespace = "quickshell:overview" }, blur = true })
+-- Settings window: same treatment — blur the desktop behind its translucent scrim.
+hl.layer_rule({ match = { namespace = "quickshell:settings" }, blur = true })
+
+
+-- ╭───────────────────────────────────────────────────────────────╮
+-- │ AUTOSTART — runs once when Hyprland finishes starting           │
+-- ╰───────────────────────────────────────────────────────────────╯
+-- All daemons live in scripts/autostart.sh (idempotent, run_once-guarded), so
+-- a `hyprctl reload` never double-spawns them. See that file to add services.
+hl.on("hyprland.start", function()
+    hl.exec_cmd(scripts .. "/autostart.sh")
+end)
+
+
+-- ╭───────────────────────────────────────────────────────────────╮
+-- │ USER OVERRIDES — written by the Quickshell Settings app        │
+-- ╰───────────────────────────────────────────────────────────────╯
+-- generated/user.lua holds hl.config{} / hl.monitor{} calls the Settings app
+-- writes (gaps, border, accent, display layout). Sourced LAST so it wins over
+-- the hand-written defaults above; this keeps this file clean and round-trips
+-- the GUI changes across reloads/relogin. Missing/empty file is a no-op.
+pcall(dofile, home .. "/.config/hypr/generated/user.lua")

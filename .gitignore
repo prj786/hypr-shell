@@ -1,0 +1,5 @@
+# user/machine state that shouldn't be committed (re-seeded at install)
+dotfiles/hypr/generated/user.lua
+dotfiles/quickshell/user-theme.json
+dotfiles/quickshell/pinned-apps.json
+*.bak.*
