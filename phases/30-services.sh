@@ -41,6 +41,13 @@ phase_services() {
         sudo_run install -d /etc/greetd
         sudo_run install -m 644 "$DOTREPO/system/greetd/config.toml"  /etc/greetd/config.toml  && ok "installed greetd config"
         sudo_run install -m 644 "$DOTREPO/system/greetd/regreet.toml" /etc/greetd/regreet.toml && ok "installed ReGreet config"
+        # PAM keyring unlock: login keyring opens with your password at the greeter,
+        # so the "login keyring did not get unlocked" prompt never appears.
+        if [ -f /usr/lib/security/pam_gnome_keyring.so ] || [ -f /lib/security/pam_gnome_keyring.so ] || pkg_present gnome-keyring; then
+            sudo_run install -m 644 "$DOTREPO/system/pam.d/greetd" /etc/pam.d/greetd && ok "installed greetd PAM (gnome-keyring auto-unlock)"
+        else
+            info "gnome-keyring not present — skipped greetd PAM keyring integration."
+        fi
         command -v regreet >/dev/null 2>&1 || pkg_present greetd-regreet \
             || warn "regreet not installed yet (AUR) — greetd will fail to start a greeter until it is. Re-run after the AUR build, or it was installed in phase 20."
         _enable_system greetd.service
