@@ -98,6 +98,9 @@ qt6ct
 kvantum
 breeze                  # Qt Breeze style — KDE/Qt apps read kdeglobals colours from it
 papirus-icon-theme      # fallback icon set (Reversal inherits/falls back to it)
+librsvg                  # rsvg-convert — builds the Mocu cursor (phase 20 source step)
+xorg-xcursorgen          # xcursorgen — builds the Mocu cursor
+xmlstarlet               # cursor hotspot extraction for the Mocu build
 noto-fonts
 noto-fonts-emoji
 ttf-jetbrains-mono-nerd

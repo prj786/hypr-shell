@@ -24,22 +24,7 @@ phase_userconfig() {
         _mime mpv.desktop              video/mp4 video/x-matroska video/webm video/quicktime audio/mpeg audio/flac
     fi
 
-    # Reversal icon theme — install ALL accent colour variants (+ -dark) to the
-    # user icon dir so colorscheme.sh can pick the one matching the accent. Pure
-    # userland (no sudo); idempotent (skips if a variant already exists).
-    if [ ! -d "$HOME/.local/share/icons/Reversal-blue-dark" ] && command -v git >/dev/null 2>&1; then
-        if [ "${DRY_RUN:-0}" = "1" ]; then info "would install Reversal icon theme (all variants) to ~/.local/share/icons"
-        else
-            local rt; rt="$(mktemp -d)"
-            if git clone --depth 1 https://github.com/yeyushengfan258/Reversal-icon-theme.git "$rt" 2>/dev/null \
-               && ( cd "$rt" && ./install.sh -t all >/dev/null 2>&1 ); then
-                ok "Reversal icon theme installed (all accent variants)"
-            else
-                warn "Reversal icon theme install failed — icons fall back to Papirus."
-            fi
-            rm -rf "$rt"
-        fi
-    fi
+    # (Reversal icon theme + Mocu cursor are installed system-wide in phase 20.)
 
     # default app appearance: dark across GTK + Qt + KDE, tinted with the default
     # accent. Writes the toolkit config files now (gsettings is best-effort from a
