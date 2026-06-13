@@ -40,20 +40,43 @@ Scope {
     }
     function cancelAsk() { root.pwOpen = false; root.pwText = ""; root.pendId = ""; root.pendKind = "" }
 
-    // build the shell command for an op. The password is NOT here — it's piped to
-    // `sudo -S` on stdin. `sudo -S -v` primes the sudo timestamp so the helper
-    // (run as the normal user) and makepkg can use it without re-prompting.
-    function opCommand(kind, id) {
+    // The privileged part of each op. paru/makepkg are run as the normal user
+    // (they refuse root) and call `sudo` themselves; our own steps use sudo too.
+    // None of these read stdin — see wrap(): we hand sudo an ASKPASS helper, which
+    // it uses automatically because the process has no controlling terminal. That
+    // avoids the deadlock where a second sudo blocks forever on an empty stdin.
+    function opBody(kind, id) {
         if (kind === "install")
             return root.helper
-                ? "sudo -S -p '' -v && " + root.helper + " -S --noconfirm --needed -- " + root.sq(id)
-                : "sudo -S -p '' pacman -S --noconfirm --needed -- " + root.sq(id)
+                ? root.helper + " -S --noconfirm --skipreview --needed -- " + root.sq(id)
+                : "sudo -A pacman -S --noconfirm --needed -- " + root.sq(id)
         if (kind === "remove")
-            return "sudo -S -p '' pacman -Rns --noconfirm -- " + root.sq(id)
+            return "sudo -A pacman -Rns --noconfirm -- " + root.sq(id)
         // kind === "paru": build the AUR helper from source (links current libalpm)
-        return "sudo -S -p '' -v && sudo pacman -S --needed --noconfirm base-devel git rust && "
-             + "d=$(mktemp -d) && git clone --depth 1 https://aur.archlinux.org/paru.git \"$d\" && "
-             + "( cd \"$d\" && makepkg -si --noconfirm ); st=$?; rm -rf \"$d\"; exit $st"
+        return "sudo -A pacman -S --needed --noconfirm base-devel git rust && "
+             + "bd=$(mktemp -d) && git clone --depth 1 https://aur.archlinux.org/paru.git \"$bd\" && "
+             + "( cd \"$bd\" && makepkg -si --noconfirm ); st=$?; rm -rf \"$bd\"; exit $st"
+    }
+    // wrap a body: read the password (one line on stdin), drop it into a 0700
+    // ASKPASS helper under XDG_RUNTIME_DIR (tmpfs, user-only), export SUDO_ASKPASS
+    // so every sudo in the body authenticates non-interactively, run it, then wipe
+    // the helper. Status is the body's status; it never hangs on stdin.
+    function opCommand(kind, id) {
+        return [
+            "IFS= read -r __PW",
+            'D=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/hs.XXXXXX") || exit 9',
+            'chmod 700 "$D"',
+            'printf "%s\\n" "$__PW" > "$D/pw"',
+            'cat > "$D/askpass" <<EOF',
+            '#!/bin/sh',
+            'cat "$D/pw"',
+            'EOF',
+            'chmod 700 "$D/askpass" "$D/pw"',
+            'export SUDO_ASKPASS="$D/askpass"',
+            '( ' + root.opBody(kind, id) + ' ); __st=$?',
+            'rm -rf "$D"',
+            'exit $__st'
+        ].join("\n")
     }
     function confirmAsk() {
         if (root.pwText.length === 0 || root.busyId !== "") return
@@ -130,7 +153,7 @@ Scope {
     Process {
         id: opProc
         stdinEnabled: true
-        onStarted: { if (root.pwText.length) opProc.write(root.pwText + "\n"); root.pwText = "" }   // feed sudo -S, then drop the password
+        onStarted: { if (root.pwText.length) opProc.write(root.pwText + "\n"); root.pwText = "" }   // one stdin line → ASKPASS file, then drop the in-memory copy
         stderr: StdioCollector { id: opErr }
         onExited: function (code, status) {
             if (code === 0) { root.opError = "" }
