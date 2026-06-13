@@ -31,6 +31,17 @@ QtObject {
     // 1.0 = default; >1 faster; 0 = animations off. Persisted in user-theme.json.
     property real animationSpeed: 1.0
 
+    // ── App appearance (GTK + Qt light/dark) ───────────────────────────────────
+    // "dark" | "light". The shell itself is always dark; this drives external
+    // GTK/Qt apps via scripts/colorscheme.sh. Persisted in user-theme.json and
+    // re-applied at every startup so gsettings stays in sync with the choice.
+    property string colorScheme: "dark"
+    property Process _csApply: Process {}
+    function applyColorScheme() {
+        g._csApply.command = ["sh", "-c", "\"$HOME/.config/quickshell/scripts/colorscheme.sh\" " + g.colorScheme]
+        g._csApply.running = false; g._csApply.running = true
+    }
+
     // ── Dock prefs (bottom dock; persisted in user-theme.json) ─────────────────
     property bool dockEnabled: true
     property bool dockAutohide: false       // intelligent hide: slide away, reveal on bottom-edge hover
@@ -100,7 +111,10 @@ QtObject {
                     if (j && j.dockEnabled !== undefined) g.dockEnabled = j.dockEnabled
                     if (j && j.dockAutohide !== undefined) g.dockAutohide = j.dockAutohide
                     if (j && j.animationSpeed !== undefined) g.animationSpeed = j.animationSpeed
+                    if (j && j.colorScheme) g.colorScheme = j.colorScheme
                 } catch (e) {}
+                // enforce the persisted (or default-dark) appearance on GTK + Qt
+                g.applyColorScheme()
             }
         }
     }

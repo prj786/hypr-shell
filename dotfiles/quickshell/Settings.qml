@@ -34,7 +34,7 @@ Scope {
         { ic: 0xF0004, label: "User" }
     ]
     onPaneChanged: {
-        if (pane === 2) { wifiState.running = true; wifiScan.running = true; vpnScan.running = true; netProc.running = true; sshProc.running = true }
+        if (pane === 2) { wifiDevProbe.running = true; wifiState.running = true; wifiScan.running = true; vpnScan.running = true; netProc.running = true; sshProc.running = true }
         else if (pane === 4) kbProc.running = true
         else if (pane === 5) scProc.running = true
         else if (pane === 7) faceProc.running = true
@@ -127,7 +127,8 @@ Scope {
         var s = '{ "accent": "' + String(Globals.accentColor) + '", "tintBorders": ' + (Globals.tintBorders ? "true" : "false")
               + ', "dockEnabled": ' + (Globals.dockEnabled ? "true" : "false")
               + ', "dockAutohide": ' + (Globals.dockAutohide ? "true" : "false")
-              + ', "animationSpeed": ' + Number(Globals.animationSpeed) + ' }'
+              + ', "animationSpeed": ' + Number(Globals.animationSpeed)
+              + ', "colorScheme": "' + Globals.colorScheme + '" }'
         jsonWriter.command = ["sh", "-c", "cat > \"" + root.home + "/.config/quickshell/user-theme.json\" <<'QS_EOF'\n" + s + "\nQS_EOF\n"]
         jsonWriter.running = false; jsonWriter.running = true
     }
@@ -135,6 +136,12 @@ Scope {
         Globals.accentColor = hex
         root.writePrefs()
         if (Globals.tintBorders) root.applyBorder()
+    }
+    // light/dark for external GTK + Qt apps (the shell itself is always dark)
+    function setColorScheme(mode) {
+        Globals.colorScheme = mode
+        root.writePrefs()
+        Quickshell.execDetached(["sh", "-c", "\"" + root.home + "/.config/quickshell/scripts/colorscheme.sh\" " + mode])
     }
     function applyBorder() {
         if (Globals.tintBorders)
@@ -213,6 +220,8 @@ Scope {
     // ── Networking ──────────────────────────────────────────────────────────────
     property var wifiList: []
     property bool wifiOn: true
+    property bool hasWifi: true     // false when no wifi device exists (e.g. a VM)
+    readonly property var wiredList: (root.netActive || []).filter(function (c) { return (c.type || "").indexOf("ethernet") >= 0 })
     property string pwTarget: ""
     property string pwText: ""
     property var vpnList: []
@@ -288,6 +297,7 @@ Scope {
         stdout: StdioCollector { onStreamFinished: { var d = {}, ls = this.text.split("\n"); for (var i = 0; i < ls.length; i++) { var t = ls[i].split("\t"); if (t.length === 2 && t[1]) { if (!d[t[0]]) d[t[0]] = []; d[t[0]].push(t[1]) } } root.appChoices = d } }
     }
     // networking probes
+    Process { id: wifiDevProbe; command: ["sh", "-c", "nmcli -t -f TYPE device status 2>/dev/null | grep -qx wifi && echo yes || echo no"]; stdout: StdioCollector { onStreamFinished: root.hasWifi = this.text.trim() === "yes" } }
     Process { id: wifiState; command: ["nmcli", "-t", "-f", "WIFI", "radio"]; stdout: StdioCollector { onStreamFinished: root.wifiOn = this.text.trim() === "enabled" } }
     Process {
         id: wifiScan; command: ["nmcli", "-t", "-f", "IN-USE,SIGNAL,SECURITY,SSID", "device", "wifi", "list"]
@@ -659,14 +669,33 @@ Scope {
                 id: cNetwork
                 Column {
                     spacing: 14
+                    // Wired / Ethernet
+                    SectionTitle { text: "WIRED" }
+                    Card {
+                        Text { width: parent.width; visible: root.wiredList.length === 0; text: "No wired connection."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall }
+                        Repeater {
+                            model: root.wiredList
+                            delegate: Item {
+                                required property var modelData
+                                width: parent.width; height: 30
+                                Text { anchors.left: parent.left; anchors.leftMargin: 4; anchors.verticalCenter: parent.verticalCenter; text: root.g(0xF0200); font.family: Theme.fontMono; font.pixelSize: 13; color: modelData.state === "activated" ? Theme.accent : Theme.fgDim }
+                                Text { anchors.left: parent.left; anchors.leftMargin: 28; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: modelData.name + "  ·  " + modelData.dev + (modelData.state === "activated" ? "  ·  connected" : ""); color: modelData.state === "activated" ? Theme.accent : Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; font.weight: modelData.state === "activated" ? Font.DemiBold : Font.Normal; elide: Text.ElideRight }
+                            }
+                        }
+                    }
                     // Wi-Fi
                     Item {
                         width: parent.width; height: 30
                         SectionTitle { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "WI-FI" }
-                        Toggle { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; on: root.wifiOn; onToggled: { Quickshell.execDetached(["nmcli", "radio", "wifi", root.wifiOn ? "off" : "on"]); wifiRescan.restart() } }
+                        Toggle { visible: root.hasWifi; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; on: root.wifiOn; onToggled: { Quickshell.execDetached(["nmcli", "radio", "wifi", root.wifiOn ? "off" : "on"]); wifiRescan.restart() } }
+                        Text { visible: !root.hasWifi; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: "Not available"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall }
                     }
                     Card {
-                        visible: root.wifiOn
+                        visible: !root.hasWifi
+                        Text { width: parent.width; text: root.g(0xF092F) + "  No Wi-Fi adapter detected — this machine has no wireless device (common in VMs). Use the wired connection above, or plug in a USB Wi-Fi dongle."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; wrapMode: Text.Wrap }
+                    }
+                    Card {
+                        visible: root.hasWifi && root.wifiOn
                         Repeater {
                             model: root.wifiList.slice(0, 8)
                             delegate: Column {
@@ -913,6 +942,29 @@ Scope {
                 id: cTheme
                 Column {
                     spacing: 14
+                    SectionTitle { text: "APP APPEARANCE" }
+                    Card {
+                        Row {
+                            width: parent.width; spacing: 8
+                            Repeater {
+                                model: [{ n: "Light", m: "light", ic: 0xF0599 }, { n: "Dark", m: "dark", ic: 0xF0594 }]
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    readonly property bool sel: Globals.colorScheme === modelData.m
+                                    width: (parent.width - 8) / 2; height: 38; radius: Theme.radiusInner
+                                    color: sel ? Theme.accent : Theme.panel
+                                    border.color: sel ? Theme.accent : Theme.stroke; border.width: 1
+                                    Row {
+                                        anchors.centerIn: parent; spacing: 7
+                                        Text { anchors.verticalCenter: parent.verticalCenter; text: root.g(modelData.ic); font.family: Theme.fontMono; font.pixelSize: 15; color: parent.parent.sel ? Theme.accentText : Theme.fg }
+                                        Text { anchors.verticalCenter: parent.verticalCenter; text: modelData.n; color: parent.parent.sel ? Theme.accentText : Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; font.weight: Font.DemiBold }
+                                    }
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.setColorScheme(modelData.m) }
+                                }
+                            }
+                        }
+                    }
+                    Text { width: parent.width; text: "Light/dark applies to GTK + Qt apps (Nautilus, editors, settings dialogs). The shell stays dark. Open apps may need a relaunch to fully recolour."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; wrapMode: Text.Wrap }
                     SectionTitle { text: "ACCENT COLOUR" }
                     Card {
                         Flow {

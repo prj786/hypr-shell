@@ -17,6 +17,16 @@ phase_userconfig() {
             run xdg-mime default nvim.desktop text/plain
     fi
 
+    # default app appearance: dark across GTK + Qt. Writes the toolkit config
+    # files now (gsettings is best-effort from a TTY; Quickshell re-applies it
+    # live at first login). Users flip light/dark later in Settings → Theme.
+    local cs="$HOME/.config/quickshell/scripts/colorscheme.sh"
+    if [ -r "$cs" ]; then
+        run sh "$cs" dark && ok "default appearance set to dark (GTK + Qt)"
+    else
+        info "colorscheme.sh not found yet (dotfiles not linked?) — skipping appearance default."
+    fi
+
     # EDITOR/VISUAL for the user shell (idempotent: only append once)
     local rc="$HOME/.profile"
     if [ -w "$rc" ] || [ ! -e "$rc" ]; then
