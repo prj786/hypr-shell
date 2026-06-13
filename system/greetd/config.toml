@@ -10,9 +10,9 @@ vt = "next"
 # cage -s prints its socket info and runs regreet fullscreen; regreet talks to
 # greetd over $GREETD_SOCK to authenticate and launch the chosen session.
 #
-# Keep this a bare command — greetd word-splits it itself, so an `env VAR=… `
-# prefix gets mis-parsed ("cage: invalid option"). The wlroots env that fixes
-# the inverted virtio / flaky `xe` cursor is set on greetd.service via the
-# drop-in installed by phase 30 (cage inherits the service environment).
-command = "cage -s -- regreet"
+# Points at a wrapper script (installed by phase 30) rather than a bare
+# `cage …` line: greetd word-splits this command, so an inline `env VAR=… `
+# prefix is mis-parsed ("cage: invalid option"). The wrapper sets the wlroots
+# env that fixes the inverted virtio / flaky `xe` cursor, then exec's cage.
+command = "/usr/local/bin/hypr-shell-greeter"
 user = "greeter"
