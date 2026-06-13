@@ -25,22 +25,38 @@ _sync_system() {
     sudo_run pacman -Syu --noconfirm || warn "pacman -Syu reported errors — review before continuing."
 }
 
+# Does a helper actually RUN? A stale prebuilt paru-bin can be installed but
+# broken ("libalpm.so.NN: cannot open shared object file" after a soname bump),
+# so test execution — not just `command -v`.
+_helper_works() { command -v "$1" >/dev/null 2>&1 && "$1" --version >/dev/null 2>&1; }
+
 _bootstrap_aur() {
-    if command -v paru >/dev/null 2>&1; then AUR_HELPER=paru; export AUR_HELPER; ok "AUR helper present (paru)"; return; fi
-    if command -v yay  >/dev/null 2>&1; then AUR_HELPER=yay;  export AUR_HELPER; ok "AUR helper present (yay)";  return; fi
-    info "bootstrapping paru (AUR helper)…"
-    install_official base-devel git
-    if [ "${DRY_RUN:-0}" = "1" ]; then info "would clone + makepkg paru-bin"; AUR_HELPER=paru; export AUR_HELPER; return; fi
+    if _helper_works paru; then AUR_HELPER=paru; export AUR_HELPER; ok "AUR helper present (paru)"; return; fi
+    if _helper_works yay;  then AUR_HELPER=yay;  export AUR_HELPER; ok "AUR helper present (yay)";  return; fi
+
+    info "bootstrapping paru (AUR helper, built from source)…"
+    install_official base-devel git rust
+    if [ "${DRY_RUN:-0}" = "1" ]; then info "would (remove broken paru-bin then) build paru from source"; AUR_HELPER=paru; export AUR_HELPER; return; fi
     if [ "$(id -u)" = "0" ]; then
-        warn "running as root — makepkg refuses root, so paru can't be bootstrapped here. Install an AUR helper as your normal user, then re-run."
+        warn "running as root — makepkg refuses root. Build paru as your normal user, then re-run."
         return
     fi
+    # A broken prebuilt paru-bin blocks both running AND installing source paru
+    # (file conflict on /usr/bin/paru) — remove it so we can rebuild.
+    if command -v paru >/dev/null 2>&1 && ! _helper_works paru; then
+        warn "existing paru is broken (shared-library mismatch) — removing it to rebuild from source."
+        pkg_present paru-bin && sudo_run pacman -Rdd --noconfirm paru-bin
+        pkg_present paru     && sudo_run pacman -Rdd --noconfirm paru
+    fi
+    # Build `paru` (source) — it links the CURRENTLY-installed libalpm, so it
+    # survives the soname bumps that break the prebuilt paru-bin package.
     local t; t="$(mktemp -d)"
-    if git clone --depth 1 https://aur.archlinux.org/paru-bin.git "$t" \
+    if git clone --depth 1 https://aur.archlinux.org/paru.git "$t" \
        && ( cd "$t" && makepkg -si --noconfirm ); then
-        AUR_HELPER=paru; export AUR_HELPER; ok "paru installed"
+        if _helper_works paru; then AUR_HELPER=paru; export AUR_HELPER; ok "paru installed (built from source)"
+        else warn "paru built but still not runnable — AUR packages will be skipped."; fi
     else
-        warn "paru bootstrap failed — AUR packages (aur.list) will be skipped. Install a helper manually."
+        warn "paru bootstrap failed — AUR extras (nwg-look, gpu-screen-recorder) skipped. Non-critical: themes install from source regardless."
     fi
     rm -rf "$t"
 }
