@@ -62,10 +62,19 @@ Okular, Kate, Ark) because, with `QT_WAYLAND_DISABLE_WINDOWDECORATION=1`, Qt app
 render **with no titlebar** — just the Hyprland accent border — and theme exactly
 to the shell. GTK apps force a client-side headerbar (with its own window buttons)
 that can't be hidden, so GTK is kept only where the app dictates it (Firefox/Zen,
-Electron apps). **Appearance** (light/dark + accent) is applied across *both*
-toolkits by `dotfiles/quickshell/scripts/colorscheme.sh` — GTK via gsettings +
-`settings.ini`, Qt via qt6ct/qt5ct (Fusion palette), KDE via `kdeglobals` — and is
-toggled live in **Settings → Theme → App appearance** (defaults to dark).
+Electron apps). **Appearance** (light/dark + accent) is applied across *every*
+toolkit by `dotfiles/quickshell/scripts/colorscheme.sh` and toggled live in
+**Settings → Theme → App appearance** (defaults to dark):
+
+- **GTK** — gsettings + `gtk-3.0/4.0/settings.ini` (adw-gtk3[-dark]).
+- **Qt** — qt6ct/qt5ct, Breeze style + a Fusion palette fallback.
+- **KDE/KF6** — a full `kdeglobals` colour scheme (Breeze `widgetStyle`); the
+  `breeze` package supplies the style so Dolphin/Kate/etc. theme completely
+  (including the file-view background) without Plasma.
+- **Icons** — **Reversal**, auto-matched to the accent by hue (`Reversal-<colour>[-dark]`).
+- **Cursor** — **Mocu** (`mocu-xcursor`), forced via `XCURSOR_THEME`,
+  `~/.icons/default`, GTK, gsettings, qt6ct and kdeglobals so it never flips
+  between GTK and Qt apps.
 
 The **app installer** inside the DE (dock “store” button) searches and
 installs/removes via **pacman + AUR** (not Flatpak) — actions open a terminal so

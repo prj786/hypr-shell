@@ -43,8 +43,11 @@ hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" 
 -- │ ENVIRONMENT — ported from the Qtile session-env.sh             │
 -- │ Every Hyprland child (Waybar, swaync, apps) inherits these.    │
 -- ╰───────────────────────────────────────────────────────────────╯
--- Cursor (XCursor for XWayland + clients without a hyprcursor theme).
-hl.env("XCURSOR_THEME", "Adwaita")
+-- Cursor — Mocu (XCursor) forced for XWayland + every toolkit. Keep this in sync
+-- with scripts/colorscheme.sh (GTK/Qt/KDE) and ~/.icons/default so the cursor
+-- never flips between GTK and Qt apps. NO HYPRCURSOR_THEME on purpose → Hyprland
+-- uses the same XCursor theme as everything else (one cursor everywhere).
+hl.env("XCURSOR_THEME", "Mocu-White-Right")
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 
