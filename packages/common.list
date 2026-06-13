@@ -48,18 +48,31 @@ power-profiles-daemon
 foot
 ghostty
 
-# ── file manager + mounting + thumbnails + archives ──────────────────────────
-nautilus
+# ── file manager + utility apps = Qt/KDE (no client-side titlebar; themed to
+#    match the shell via kdeglobals + qt6ct). GTK is kept for browsers/3rd-party
+#    apps below. With QT_WAYLAND_DISABLE_WINDOWDECORATION=1 (set in hyprland.lua)
+#    these render borderless — only the Hyprland accent border, macOS-clean. ────
+dolphin                 # file manager
+ark                     # archive manager (replaces file-roller)
+gwenview                # image viewer
+okular                  # PDF / document viewer
+kate                    # advanced text editor (GUI)
+mpv                     # video player (decorationless, themeless — ideal)
+kio-extras              # smb/sftp/mtp/etc protocols for Dolphin
+kio-fuse                # mount kio locations so non-KDE apps can read them
+kdegraphics-thumbnailers # PDF/image thumbnails in Dolphin
+ffmpegthumbs            # video thumbnails in Dolphin
+kimageformats           # avif/heif/jxl… support for Gwenview/Dolphin
+kde-cli-tools           # kioclient / kde-open (file associations, "open with")
+# mounting + GTK-app filesystem access (browsers, Electron apps still want gvfs)
 gvfs
 gvfs-mtp
 gvfs-smb
 udisks2
-ffmpegthumbnailer
-file-roller
 unzip
 p7zip
 
-# ── browser / editors ────────────────────────────────────────────────────────
+# ── browser / editors (GTK / terminal — kept for 3rd-party app parity) ─────────
 firefox
 neovim
 vim

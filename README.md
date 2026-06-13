@@ -47,12 +47,25 @@ genuinely safe and the whole thing is re-runnable.
 
 - **`packages/common.list`** — official-repo packages (real Arch names), installed
   with `pacman -S --needed`. Grouped: core session, greeter, audio, network,
-  bluetooth, power, terminals, file manager, browser/editors, utilities, theming +
-  fonts, dev tooling, gaming (multilib), tuning, build deps.
+  bluetooth, power, terminals, **Qt/KDE utility apps** (Dolphin, Ark, Gwenview,
+  Okular, Kate, mpv), GTK browser/editors, utilities, theming + fonts, dev tooling,
+  gaming (multilib), tuning, build deps.
 - **`packages/aur.list`** — AUR packages (built via paru): cursor theme, `nwg-look`,
   `gpu-screen-recorder`. Kept deliberately short.
 - **GPU/Vulkan drivers** are *not* in the lists — phase 40 installs the right set
   for the detected vendor (intel / amd / nvidia).
+
+### Why Qt/KDE for utility apps, GTK for browsers
+
+The shipped file manager / viewers / editor are **Qt/KDE** (Dolphin, Gwenview,
+Okular, Kate, Ark) because, with `QT_WAYLAND_DISABLE_WINDOWDECORATION=1`, Qt apps
+render **with no titlebar** — just the Hyprland accent border — and theme exactly
+to the shell. GTK apps force a client-side headerbar (with its own window buttons)
+that can't be hidden, so GTK is kept only where the app dictates it (Firefox/Zen,
+Electron apps). **Appearance** (light/dark + accent) is applied across *both*
+toolkits by `dotfiles/quickshell/scripts/colorscheme.sh` — GTK via gsettings +
+`settings.ini`, Qt via qt6ct/qt5ct (Fusion palette), KDE via `kdeglobals` — and is
+toggled live in **Settings → Theme → App appearance** (defaults to dark).
 
 The **app installer** inside the DE (dock “store” button) searches and
 installs/removes via **pacman + AUR** (not Flatpak) — actions open a terminal so

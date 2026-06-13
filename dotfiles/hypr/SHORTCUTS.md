@@ -11,7 +11,7 @@ on save). Ported from the old Qtile bindings so most muscle memory carries over.
 | `Super` + `Return` | Terminal | `foot` |
 | `Super` + `Space` | **Spotlight** search (press again to close) | Quickshell |
 | `Super` + `D` | App launcher (same Spotlight) | Quickshell |
-| `Super` + `E` | File manager | `nautilus` |
+| `Super` + `E` | File manager | `dolphin` |
 | `Super` + `B` | Web browser | `firefox` |
 | `Super` + `C` | Calendar | GNOME Calendar / popup |
 | `Super` + `N` | Toggle notification centre | `swaync` |

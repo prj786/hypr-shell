@@ -16,7 +16,7 @@ local scripts  = home .. "/.config/hypr/scripts"
 
 -- Core programs (mirror the old settings.py defaults) ------------------------
 local terminal    = "foot"
-local fileManager = "nautilus"
+local fileManager = "dolphin"
 local browser     = "firefox"
 local spotlight   = "qs ipc call spotlight toggle"  -- Quickshell launcher (QML)
 
@@ -322,7 +322,7 @@ hl.window_rule({
 for _, klass in ipairs({
     "pavucontrol", "org.pulseaudio.pavucontrol",
     "nm-connection-editor", "blueman-manager",
-    "org.gnome.Calculator", "org.gnome.FileRoller", "file-roller",
+    "org.gnome.Calculator", "org.kde.ark",
 }) do
     hl.window_rule({ name = "float-" .. klass, match = { class = klass }, float = true })
 end

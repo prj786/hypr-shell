@@ -38,7 +38,8 @@ QtObject {
     property string colorScheme: "dark"
     property Process _csApply: Process {}
     function applyColorScheme() {
-        g._csApply.command = ["sh", "-c", "\"$HOME/.config/quickshell/scripts/colorscheme.sh\" " + g.colorScheme]
+        var acc = String(g.accentColor).replace("#", "")
+        g._csApply.command = ["sh", "-c", "\"$HOME/.config/quickshell/scripts/colorscheme.sh\" " + g.colorScheme + " " + acc]
         g._csApply.running = false; g._csApply.running = true
     }
 

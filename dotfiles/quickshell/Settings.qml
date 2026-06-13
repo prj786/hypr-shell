@@ -136,12 +136,18 @@ Scope {
         Globals.accentColor = hex
         root.writePrefs()
         if (Globals.tintBorders) root.applyBorder()
+        root.applyAppColors()      // re-tint Qt/KDE apps to the new accent
+    }
+    // re-apply the GTK/Qt/KDE appearance (scheme + accent) to external apps
+    function applyAppColors() {
+        Quickshell.execDetached(["sh", "-c", "\"" + root.home + "/.config/quickshell/scripts/colorscheme.sh\" "
+            + Globals.colorScheme + " " + String(Globals.accentColor).replace("#", "")])
     }
     // light/dark for external GTK + Qt apps (the shell itself is always dark)
     function setColorScheme(mode) {
         Globals.colorScheme = mode
         root.writePrefs()
-        Quickshell.execDetached(["sh", "-c", "\"" + root.home + "/.config/quickshell/scripts/colorscheme.sh\" " + mode])
+        root.applyAppColors()
     }
     function applyBorder() {
         if (Globals.tintBorders)
@@ -964,7 +970,7 @@ Scope {
                             }
                         }
                     }
-                    Text { width: parent.width; text: "Light/dark applies to GTK + Qt apps (Nautilus, editors, settings dialogs). The shell stays dark. Open apps may need a relaunch to fully recolour."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; wrapMode: Text.Wrap }
+                    Text { width: parent.width; text: "Light/dark + accent applies to GTK apps (Firefox/Zen) and Qt/KDE apps (Dolphin, Kate, Gwenview…). The shell stays dark. Open apps may need a relaunch to fully recolour."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; wrapMode: Text.Wrap }
                     SectionTitle { text: "ACCENT COLOUR" }
                     Card {
                         Flow {

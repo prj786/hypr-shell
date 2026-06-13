@@ -10,11 +10,18 @@ phase_userconfig() {
             [ -r "/usr/share/applications/$b" ] && { run xdg-settings set default-web-browser "$b" && break; }
         done
     fi
+    # KDE/Qt utility apps as defaults (themed, titlebar-less). _mime <desktop> <mimes…>
+    _mime() {
+        local d="$1"; shift
+        [ -r "/usr/share/applications/$d" ] || return 0
+        local m; for m in "$@"; do run xdg-mime default "$d" "$m"; done
+    }
     if command -v xdg-mime >/dev/null 2>&1; then
-        [ -r /usr/share/applications/org.gnome.Nautilus.desktop ] && \
-            run xdg-mime default org.gnome.Nautilus.desktop inode/directory
-        [ -r /usr/share/applications/nvim.desktop ] && \
-            run xdg-mime default nvim.desktop text/plain
+        _mime org.kde.dolphin.desktop  inode/directory
+        _mime org.kde.kate.desktop     text/plain
+        _mime org.kde.gwenview.desktop image/png image/jpeg image/gif image/webp image/bmp image/tiff
+        _mime org.kde.okular.desktop   application/pdf application/epub+zip
+        _mime mpv.desktop              video/mp4 video/x-matroska video/webm video/quicktime audio/mpeg audio/flac
     fi
 
     # default app appearance: dark across GTK + Qt. Writes the toolkit config
