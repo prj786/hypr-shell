@@ -5,25 +5,65 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Io
 
-// AppStore — a search box that installs/removes apps from the Arch official repos
-// + the AUR (via the paru/yay helper if present, else pacman for repo packages).
-// Install/Remove run in a foot terminal so you see the build/download and enter
-// your sudo password there — nothing is changed silently. Themed from Theme.qml.
+// AppStore — search + install/remove apps from the Arch official repos + the AUR.
+// Installs run in the BACKGROUND (no terminal): clicking an action opens a themed
+// sudo-password prompt, the password is piped to `sudo -S` over stdin (never put
+// on the command line), and a spinner shows on the button until it finishes.
+// If no AUR helper is present, an "Enable AUR" button builds paru from source the
+// same way. Themed from Theme.qml.
 Scope {
     id: root
     function g(c) { return String.fromCodePoint(c) }
+    function sq(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'" }   // shell single-quote
+
     property string query: ""
     property var results: []
     property var installed: ({})       // pkg name → true (from `pacman -Qq`)
     property string helper: ""          // "paru" / "yay" / "" (= repo-only via pacman)
     property bool searching: false
-    property bool searched: false       // a search has actually completed (so we
-                                        // don't flash "No results" before searching)
+    property bool searched: false       // a search has actually completed
 
-    // run a package action in a visible terminal (sudo/build/confirm = user-driven)
-    function term(cmd) { Quickshell.execDetached(["foot", "-e", "sh", "-c", cmd + '; echo; echo "── press Enter to close ──"; read x']) }
-    function pkgInstall(id) { root.term((root.helper ? root.helper : "sudo pacman") + " -S --needed " + id); refresh.restart() }
-    function pkgRemove(id)  { root.term((root.helper ? root.helper : "sudo pacman") + " -Rns " + id); refresh.restart() }
+    // ── one background operation at a time (gated by the single password prompt) ──
+    property string busyId: ""          // pkg id currently being installed/removed ("" = idle)
+    property string busyKind: ""        // "install" | "remove" | "paru"
+    property string opError: ""         // last failure message (shown as a banner)
+    // pending op awaiting the password
+    property string pendId: ""
+    property string pendKind: ""
+    property bool pwOpen: false
+    property string pwText: ""
+
+    function ask(kind, id) {
+        if (root.busyId !== "") return            // an op is already running
+        root.pendKind = kind; root.pendId = id
+        root.opError = ""; root.pwText = ""; root.pwOpen = true
+    }
+    function cancelAsk() { root.pwOpen = false; root.pwText = ""; root.pendId = ""; root.pendKind = "" }
+
+    // build the shell command for an op. The password is NOT here — it's piped to
+    // `sudo -S` on stdin. `sudo -S -v` primes the sudo timestamp so the helper
+    // (run as the normal user) and makepkg can use it without re-prompting.
+    function opCommand(kind, id) {
+        if (kind === "install")
+            return root.helper
+                ? "sudo -S -p '' -v && " + root.helper + " -S --noconfirm --needed -- " + root.sq(id)
+                : "sudo -S -p '' pacman -S --noconfirm --needed -- " + root.sq(id)
+        if (kind === "remove")
+            return "sudo -S -p '' pacman -Rns --noconfirm -- " + root.sq(id)
+        // kind === "paru": build the AUR helper from source (links current libalpm)
+        return "sudo -S -p '' -v && sudo pacman -S --needed --noconfirm base-devel git rust && "
+             + "d=$(mktemp -d) && git clone --depth 1 https://aur.archlinux.org/paru.git \"$d\" && "
+             + "( cd \"$d\" && makepkg -si --noconfirm ); st=$?; rm -rf \"$d\"; exit $st"
+    }
+    function confirmAsk() {
+        if (root.pwText.length === 0 || root.busyId !== "") return
+        root.busyKind = root.pendKind
+        root.busyId = (root.pendKind === "paru") ? "paru" : root.pendId
+        root.opError = ""
+        opProc.command = ["sh", "-c", root.opCommand(root.pendKind, root.pendId)]
+        opProc.running = false; opProc.running = true
+        root.pwOpen = false; root.pendId = ""; root.pendKind = ""
+    }
 
     function doSearch() {
         var q = root.query.trim()
@@ -35,7 +75,7 @@ Scope {
     }
     // live search: fire shortly after the user stops typing (no need to press Enter)
     Timer { id: searchDebounce; interval: 350; onTriggered: root.doSearch() }
-    Timer { id: refresh; interval: 1500; onTriggered: qProc.running = true }
+    Timer { id: refresh; interval: 1500; onTriggered: { qProc.running = true; helperProc.running = true } }
 
     // latch monitor on open (avoid focus-follows-mouse surface-remap blink)
     property var openScreen: null
@@ -86,6 +126,24 @@ Scope {
         }
     }
 
+    // ── the background install/remove/build process ──
+    Process {
+        id: opProc
+        stdinEnabled: true
+        onStarted: { if (root.pwText.length) opProc.write(root.pwText + "\n"); root.pwText = "" }   // feed sudo -S, then drop the password
+        stderr: StdioCollector { id: opErr }
+        onExited: function (code, status) {
+            if (code === 0) { root.opError = "" }
+            else {
+                var e = (opErr.text || "").trim().split("\n").filter(function (l) { return l.trim().length }).pop()
+                root.opError = (root.busyKind === "paru" ? "Couldn't build paru. " : "Operation failed. ")
+                             + (e && e.length ? e : ("exit code " + code + " — wrong password?"))
+            }
+            root.busyId = ""; root.busyKind = ""
+            qProc.running = true; helperProc.running = true     // refresh installed set + helper presence
+        }
+    }
+
     PanelWindow {
         id: win
         visible: Globals.storeOpen || closeTimer.running
@@ -99,11 +157,20 @@ Scope {
 
         Timer { id: closeTimer; interval: 220 }
         Connections { target: Globals; function onStoreOpenChanged() {
-            if (Globals.storeOpen) { root.openScreen = root.focusedScreen(); root.query = ""; root.results = []; storeIn.text = ""; storeIn.forceActiveFocus(); helperProc.running = true; qProc.running = true }
+            if (Globals.storeOpen) { root.openScreen = root.focusedScreen(); root.query = ""; root.results = []; root.searched = false; root.cancelAsk(); storeIn.text = ""; storeIn.forceActiveFocus(); helperProc.running = true; qProc.running = true }
             else closeTimer.restart()
         } }
 
         MouseArea { anchors.fill: parent; onClicked: Globals.storeOpen = false }
+
+        // small reusable spinner
+        component Spinner: Item {
+            property color ring: Theme.stroke
+            property color dot: Theme.accent
+            RotationAnimator on rotation { from: 0; to: 360; duration: 850; loops: Animation.Infinite; running: true }
+            Rectangle { anchors.fill: parent; radius: width / 2; color: "transparent"; border.color: parent.ring; border.width: 2 }
+            Rectangle { width: parent.width * 0.3; height: width; radius: width / 2; color: parent.dot; anchors.horizontalCenter: parent.horizontalCenter; anchors.top: parent.top; anchors.topMargin: -1 }
+        }
 
         Rectangle {
             id: box
@@ -121,16 +188,42 @@ Scope {
             layer.effect: MultiEffect { shadowEnabled: true; shadowColor: Theme.shadow; shadowOpacity: 0.5; shadowBlur: 1.0; shadowVerticalOffset: 8; blurMax: 48 }
 
             MouseArea { anchors.fill: parent }
-            Keys.onEscapePressed: Globals.storeOpen = false
+            Keys.onEscapePressed: { if (root.pwOpen) root.cancelAsk(); else Globals.storeOpen = false }
 
             Column {
                 anchors.fill: parent; anchors.margins: 14; spacing: 12
 
-                Row {
-                    width: parent.width; spacing: 8
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: "App Store"; color: Theme.fg; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsLarge; font.weight: Font.Bold }
-                    Item { width: parent.width - 200; height: 1 }
-                    Text { anchors.verticalCenter: parent.verticalCenter; visible: root.helper === ""; text: "repo-only (no AUR helper)"; color: Theme.warning; font.family: Theme.fontText; font.pixelSize: 10 }
+                // ── header: title (left) + AUR status / Enable-AUR (right) ──
+                Item {
+                    width: parent.width; height: 26
+                    Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "App Store"; color: Theme.fg; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsLarge; font.weight: Font.Bold }
+
+                    // AUR present → quiet "AUR ✓" tag
+                    Text {
+                        visible: root.helper !== "" && root.busyKind !== "paru"
+                        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                        text: "AUR · " + root.helper; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10
+                    }
+                    // building paru → progress tag
+                    Row {
+                        visible: root.busyKind === "paru"
+                        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; spacing: 6
+                        Spinner { width: 13; height: 13; anchors.verticalCenter: parent.verticalCenter }
+                        Text { anchors.verticalCenter: parent.verticalCenter; text: "Building paru…"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10 }
+                    }
+                    // no AUR helper → one-click Enable AUR (builds paru in the background)
+                    Rectangle {
+                        visible: root.helper === "" && root.busyKind !== "paru"
+                        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                        width: eaRow.implicitWidth + 18; height: 24; radius: 7
+                        color: eaMa.containsMouse ? Theme.accent : Theme.elevated
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                        Row { id: eaRow; anchors.centerIn: parent; spacing: 6
+                            Text { anchors.verticalCenter: parent.verticalCenter; text: root.g(0xF01DA); font.family: Theme.fontMono; font.pixelSize: 12; color: eaMa.containsMouse ? Theme.accentText : Theme.accent }
+                            Text { anchors.verticalCenter: parent.verticalCenter; text: "Enable AUR"; color: eaMa.containsMouse ? Theme.accentText : Theme.fg; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold }
+                        }
+                        MouseArea { id: eaMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.ask("paru", "paru") }
+                    }
                 }
 
                 Rectangle {
@@ -141,6 +234,7 @@ Scope {
                         id: storeIn
                         anchors.fill: parent; anchors.leftMargin: 34; anchors.rightMargin: 12; verticalAlignment: TextInput.AlignVCenter
                         color: Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsBody; clip: true
+                        enabled: !root.pwOpen
                         onTextChanged: {
                             root.query = text
                             root.searched = false
@@ -152,7 +246,14 @@ Scope {
                         Text { anchors.verticalCenter: parent.verticalCenter; visible: storeIn.text.length === 0; text: "Search apps to install or remove…"; color: Theme.fgDim; font: storeIn.font }
                     }
                 }
-                Text { width: parent.width; text: (root.helper ? "Searches the official repos + AUR as you type." : "Searches the official repos as you type (no AUR helper).") + " Actions open a terminal."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10 }
+                Text { width: parent.width; wrapMode: Text.WordWrap; text: (root.helper ? "Searches the official repos + AUR as you type." : "Searches the official repos as you type — enable AUR for the rest.") + " Installs run in the background."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10 }
+
+                // ── error banner ──
+                Rectangle {
+                    width: parent.width; visible: root.opError !== ""; radius: Theme.radiusInner
+                    height: visible ? errT.implicitHeight + 16 : 0; color: Qt.rgba(1, 0.27, 0.23, 0.12); border.color: Theme.danger; border.width: 1
+                    Text { id: errT; anchors.left: parent.left; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; anchors.margins: 8; text: root.opError; wrapMode: Text.WordWrap; color: Theme.danger; font.family: Theme.fontText; font.pixelSize: 10 }
+                }
 
                 Flickable {
                     width: parent.width; height: parent.height - y
@@ -160,21 +261,16 @@ Scope {
                     Column {
                         id: resCol
                         width: parent.width; spacing: 6
-                        // loading spinner
+                        // search spinner
                         Row {
                             width: parent.width; height: visible ? 30 : 0; visible: root.searching; spacing: 10
-                            Item {
-                                width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter
-                                RotationAnimator on rotation { from: 0; to: 360; duration: 850; loops: Animation.Infinite; running: root.searching }
-                                Rectangle { anchors.fill: parent; radius: 10; color: "transparent"; border.color: Theme.stroke; border.width: 2 }
-                                Rectangle { width: 6; height: 6; radius: 3; color: Theme.accent; anchors.horizontalCenter: parent.horizontalCenter; anchors.top: parent.top; anchors.topMargin: -1 }
-                            }
+                            Spinner { width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter }
                             Text { anchors.verticalCenter: parent.verticalCenter; text: "Searching repos + AUR…"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall }
                         }
                         Text {
                             width: parent.width
                             visible: !root.searching && root.searched && root.results.length === 0 && root.query.trim().length >= 2
-                            text: root.helper === "" ? "No results in the official repos. Many apps (e.g. Chrome) are AUR-only — install paru to search the AUR."
+                            text: root.helper === "" ? "No results in the official repos. Many apps (e.g. Chrome) are AUR-only — click “Enable AUR”."
                                                       : "No results."
                             wrapMode: Text.WordWrap
                             color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall
@@ -182,9 +278,11 @@ Scope {
                         Repeater {
                             model: root.results
                             delegate: Rectangle {
+                                id: rowItem
                                 required property var modelData
                                 readonly property bool aur: modelData.source === "aur"
                                 readonly property bool isInstalled: modelData.inst === true || root.installed[modelData.id] === true
+                                readonly property bool isBusy: root.busyId === modelData.id
                                 width: resCol.width; height: 56; radius: Theme.radiusInner; color: Theme.elevated
                                 Row {
                                     anchors.left: parent.left; anchors.leftMargin: 10; anchors.right: actions.left; anchors.rightMargin: 8; anchors.verticalCenter: parent.verticalCenter; spacing: 10
@@ -193,9 +291,9 @@ Scope {
                                         anchors.verticalCenter: parent.verticalCenter; spacing: 1; width: 230
                                         Row { spacing: 6
                                             Text { text: modelData.name; color: Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; font.weight: Font.DemiBold; elide: Text.ElideRight; width: Math.min(implicitWidth, 150) }
-                                            Rectangle { anchors.verticalCenter: parent.verticalCenter; width: badge.implicitWidth + 10; height: 15; radius: 4; color: parent.parent.parent.parent.aur ? Theme.accent : Theme.hover
-                                                Text { id: badge; anchors.centerIn: parent; text: modelData.source; color: parent.parent.parent.parent.parent.aur ? Theme.accentText : Theme.fgSecondary; font.family: Theme.fontText; font.pixelSize: 9; font.weight: Font.DemiBold } }
-                                            Text { anchors.verticalCenter: parent.verticalCenter; visible: parent.parent.parent.parent.isInstalled; text: "installed"; color: Theme.accent; font.family: Theme.fontText; font.pixelSize: 9 }
+                                            Rectangle { anchors.verticalCenter: parent.verticalCenter; width: badge.implicitWidth + 10; height: 15; radius: 4; color: rowItem.aur ? Theme.accent : Theme.hover
+                                                Text { id: badge; anchors.centerIn: parent; text: modelData.source; color: rowItem.aur ? Theme.accentText : Theme.fgSecondary; font.family: Theme.fontText; font.pixelSize: 9; font.weight: Font.DemiBold } }
+                                            Text { anchors.verticalCenter: parent.verticalCenter; visible: rowItem.isInstalled; text: "installed"; color: Theme.accent; font.family: Theme.fontText; font.pixelSize: 9 }
                                         }
                                         Text { width: 230; text: modelData.desc; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; elide: Text.ElideRight; maximumLineCount: 1 }
                                     }
@@ -203,18 +301,74 @@ Scope {
                                 Row {
                                     id: actions
                                     anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter; spacing: 6
-                                    // Install (hidden if already installed)
-                                    Rectangle { visible: !parent.parent.isInstalled; width: il.implicitWidth + 16; height: 26; radius: 7; color: iMa.containsMouse ? Theme.accent : Theme.hover
-                                        Text { id: il; anchors.centerIn: parent; text: "Install"; color: iMa.containsMouse ? Theme.accentText : Theme.fg; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold }
-                                        MouseArea { id: iMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.pkgInstall(modelData.id) } }
-                                    // Remove (only if installed)
-                                    Rectangle { visible: parent.parent.isInstalled; width: rl.implicitWidth + 14; height: 26; radius: 7; color: rMa.containsMouse ? Theme.danger : Theme.hover
-                                        Text { id: rl; anchors.centerIn: parent; text: "Remove"; color: rMa.containsMouse ? Theme.accentText : Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold }
-                                        MouseArea { id: rMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.pkgRemove(modelData.id) } }
+                                    // busy → spinner on this row's button
+                                    Rectangle {
+                                        visible: rowItem.isBusy; width: 26; height: 26; radius: 7; color: Theme.hover
+                                        Spinner { anchors.centerIn: parent; width: 15; height: 15 }
+                                    }
+                                    // Install (hidden if already installed or busy)
+                                    Rectangle { visible: !rowItem.isInstalled && !rowItem.isBusy; width: il.implicitWidth + 16; height: 26; radius: 7
+                                        opacity: root.busyId === "" ? 1 : 0.4
+                                        color: iMa.containsMouse && root.busyId === "" ? Theme.accent : Theme.hover
+                                        Text { id: il; anchors.centerIn: parent; text: "Install"; color: (iMa.containsMouse && root.busyId === "") ? Theme.accentText : Theme.fg; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                        MouseArea { id: iMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.ask("install", modelData.id) } }
+                                    // Remove (only if installed, hidden while busy)
+                                    Rectangle { visible: rowItem.isInstalled && !rowItem.isBusy; width: rl.implicitWidth + 14; height: 26; radius: 7
+                                        opacity: root.busyId === "" ? 1 : 0.4
+                                        color: rMa.containsMouse && root.busyId === "" ? Theme.danger : Theme.hover
+                                        Text { id: rl; anchors.centerIn: parent; text: "Remove"; color: (rMa.containsMouse && root.busyId === "") ? Theme.accentText : Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                        MouseArea { id: rMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.ask("remove", modelData.id) } }
                                 }
                             }
                         }
                     }
+                }
+            }
+
+            // ════════ in-app sudo password prompt (background auth — no terminal) ════════
+            Rectangle {
+                anchors.fill: parent; radius: Theme.radius; visible: root.pwOpen
+                color: Qt.rgba(0, 0, 0, 0.55)
+                MouseArea { anchors.fill: parent; onClicked: root.cancelAsk() }   // click-outside cancels
+                Rectangle {
+                    anchors.centerIn: parent; width: 320; height: pwCol.implicitHeight + 36
+                    radius: Theme.radius; color: Theme.panel; border.color: Theme.stroke; border.width: 1
+                    MouseArea { anchors.fill: parent }   // swallow clicks inside the card
+                    Column {
+                        id: pwCol
+                        anchors.left: parent.left; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                        anchors.margins: 18; spacing: 12
+                        Text { text: "Administrator password"; color: Theme.fg; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsBody; font.weight: Font.Bold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11
+                            text: root.pendKind === "paru" ? "Build the paru AUR helper from source."
+                                : (root.pendKind === "remove" ? "Remove " : "Install ") + (root.pendId || "") + (root.pendKind === "install" && root.helper ? "  (repos + AUR)" : "") }
+                        Rectangle {
+                            width: parent.width; height: 38; radius: Theme.radiusInner
+                            color: Theme.bg; border.color: pwIn.activeFocus ? Theme.accent : Theme.stroke; border.width: 1
+                            TextInput {
+                                id: pwIn
+                                anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; verticalAlignment: TextInput.AlignVCenter
+                                echoMode: TextInput.Password; passwordCharacter: "•"
+                                color: Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsBody; clip: true
+                                onTextChanged: root.pwText = text
+                                Keys.onEscapePressed: root.cancelAsk()
+                                onAccepted: { if (root.pwText.length) root.confirmAsk() }
+                                Text { anchors.verticalCenter: parent.verticalCenter; visible: pwIn.text.length === 0; text: "sudo password"; color: Theme.fgDim; font: pwIn.font }
+                            }
+                        }
+                        Row {
+                            anchors.right: parent.right; spacing: 8
+                            Rectangle { width: cl.implicitWidth + 22; height: 30; radius: 8; color: clMa.containsMouse ? Theme.hover : Theme.elevated
+                                Text { id: cl; anchors.centerIn: parent; text: "Cancel"; color: Theme.fg; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                MouseArea { id: clMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.cancelAsk() } }
+                            Rectangle { width: ol.implicitWidth + 22; height: 30; radius: 8; opacity: root.pwText.length ? 1 : 0.4
+                                color: Theme.accent
+                                Text { id: ol; anchors.centerIn: parent; text: root.pendKind === "remove" ? "Remove" : (root.pendKind === "paru" ? "Build" : "Install"); color: Theme.accentText; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                MouseArea { id: okMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { if (root.pwText.length) root.confirmAsk() } } }
+                        }
+                    }
+                    // clear + focus the field whenever the prompt opens
+                    Connections { target: root; function onPwOpenChanged() { if (root.pwOpen) { pwIn.text = ""; pwIn.forceActiveFocus() } } }
                 }
             }
         }
