@@ -33,6 +33,7 @@ Scope {
     // wifi
     property var wifiList: []
     property bool wifiOn: true
+    property bool wiredUp: false   // a wired (ethernet) link is the active connection
     property string pwTarget: ""
     property string pwText: ""
     function curSsid() { for (var i = 0; i < wifiList.length; i++) if (wifiList[i].active) return wifiList[i].ssid; return "" }
@@ -53,7 +54,7 @@ Scope {
     function refresh() {
         var d = new Date()
         root.today = d; root.calYear = d.getFullYear(); root.calMonth = d.getMonth(); root.calDate = d.getDate()
-        wifiState.running = true; brightnessProc.running = true; volumeProc.running = true
+        wifiState.running = true; wiredState.running = true; brightnessProc.running = true; volumeProc.running = true
         if (root.expanded === "wifi") wifiScan.running = true
         if (root.expanded === "vpn") vpnScan.running = true
     }
@@ -110,6 +111,7 @@ Scope {
         }
     }
     Process { id: wifiState; command: ["nmcli", "-t", "-f", "WIFI", "radio"]; stdout: StdioCollector { onStreamFinished: root.wifiOn = this.text.trim() === "enabled" } }
+    Process { id: wiredState; command: ["sh", "-c", "nmcli -t -f TYPE,STATE device 2>/dev/null | awk -F: '$1==\"ethernet\" && $2==\"connected\"{print \"yes\"; exit}'"]; stdout: StdioCollector { onStreamFinished: root.wiredUp = this.text.trim() === "yes" } }
     Process {
         id: vpnScan
         command: ["sh", "-c", "nmcli -t -f NAME,TYPE,ACTIVE connection show 2>/dev/null"]
@@ -144,7 +146,7 @@ Scope {
             }
         }
     }
-    Timer { interval: 6000; running: true; repeat: true; onTriggered: { if (!Globals.controlOpen) return; wifiState.running = true; if (root.expanded === "wifi") wifiScan.running = true } }
+    Timer { interval: 6000; running: true; repeat: true; onTriggered: { if (!Globals.controlOpen) return; wifiState.running = true; wiredState.running = true; if (root.expanded === "wifi") wifiScan.running = true } }
 
     PanelWindow {
         id: win
@@ -321,8 +323,12 @@ Scope {
                     Grid {
                         width: parent.width; columns: 2; spacing: 10
                         Tile {
-                            ic: root.g(0xF1EB); label: "Wi-Fi"; active: root.expanded === "wifi"
-                            sub: root.wifiOn ? (root.curSsid() !== "" ? root.curSsid() : "On") : "Off"
+                            // adapts to the live link: shows the wired/ethernet glyph + "Wired"
+                            // when a cable is the active connection and Wi-Fi isn't (e.g. VMs).
+                            readonly property bool onWired: root.wiredUp && root.curSsid() === ""
+                            ic: onWired ? root.g(0xF0200) : root.g(0xF1EB)   // mdi-ethernet : wifi
+                            label: onWired ? "Network" : "Wi-Fi"; active: root.expanded === "wifi"
+                            sub: root.curSsid() !== "" ? root.curSsid() : (onWired ? "Wired" : (root.wifiOn ? "On" : "Off"))
                             onClicked: { root.expanded = root.expanded === "wifi" ? "" : "wifi"; if (root.expanded === "wifi") wifiScan.running = true }
                         }
                         Tile {

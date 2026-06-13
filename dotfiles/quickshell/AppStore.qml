@@ -17,6 +17,8 @@ Scope {
     property var installed: ({})       // pkg name → true (from `pacman -Qq`)
     property string helper: ""          // "paru" / "yay" / "" (= repo-only via pacman)
     property bool searching: false
+    property bool searched: false       // a search has actually completed (so we
+                                        // don't flash "No results" before searching)
 
     // run a package action in a visible terminal (sudo/build/confirm = user-driven)
     function term(cmd) { Quickshell.execDetached(["foot", "-e", "sh", "-c", cmd + '; echo; echo "── press Enter to close ──"; read x']) }
@@ -25,12 +27,14 @@ Scope {
 
     function doSearch() {
         var q = root.query.trim()
-        if (q.length < 2) { root.results = []; root.searching = false; return }
+        if (q.length < 2) { root.results = []; root.searching = false; root.searched = false; return }
         root.searching = true
         var tool = root.helper ? root.helper : "pacman"   // paru/yay also searches the AUR
         searchProc.command = ["sh", "-c", tool + ' -Ss --color=never -- "$1" 2>/dev/null | head -80', "sh", q]
         searchProc.running = false; searchProc.running = true
     }
+    // live search: fire shortly after the user stops typing (no need to press Enter)
+    Timer { id: searchDebounce; interval: 350; onTriggered: root.doSearch() }
     Timer { id: refresh; interval: 1500; onTriggered: qProc.running = true }
 
     // latch monitor on open (avoid focus-follows-mouse surface-remap blink)
@@ -77,7 +81,7 @@ Scope {
                 }
                 if (cur) out.push(cur)
                 root.results = out.slice(0, 40)
-                root.searching = false
+                root.searching = false; root.searched = true
             }
         }
     }
@@ -137,13 +141,18 @@ Scope {
                         id: storeIn
                         anchors.fill: parent; anchors.leftMargin: 34; anchors.rightMargin: 12; verticalAlignment: TextInput.AlignVCenter
                         color: Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsBody; clip: true
-                        onTextChanged: root.query = text
+                        onTextChanged: {
+                            root.query = text
+                            root.searched = false
+                            if (text.trim().length < 2) { root.results = []; root.searching = false; searchDebounce.stop() }
+                            else searchDebounce.restart()
+                        }
                         Keys.onEscapePressed: Globals.storeOpen = false
-                        onAccepted: root.doSearch()
+                        onAccepted: { searchDebounce.stop(); root.doSearch() }
                         Text { anchors.verticalCenter: parent.verticalCenter; visible: storeIn.text.length === 0; text: "Search apps to install or remove…"; color: Theme.fgDim; font: storeIn.font }
                     }
                 }
-                Text { width: parent.width; text: "Press Enter to search the official repos + AUR. Actions open a terminal."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10 }
+                Text { width: parent.width; text: (root.helper ? "Searches the official repos + AUR as you type." : "Searches the official repos as you type (no AUR helper).") + " Actions open a terminal."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10 }
 
                 Flickable {
                     width: parent.width; height: parent.height - y
@@ -162,7 +171,14 @@ Scope {
                             }
                             Text { anchors.verticalCenter: parent.verticalCenter; text: "Searching repos + AUR…"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall }
                         }
-                        Text { width: parent.width; visible: !root.searching && root.results.length === 0 && root.query.trim().length >= 2; text: "No results."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall }
+                        Text {
+                            width: parent.width
+                            visible: !root.searching && root.searched && root.results.length === 0 && root.query.trim().length >= 2
+                            text: root.helper === "" ? "No results in the official repos. Many apps (e.g. Chrome) are AUR-only — install paru to search the AUR."
+                                                      : "No results."
+                            wrapMode: Text.WordWrap
+                            color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall
+                        }
                         Repeater {
                             model: root.results
                             delegate: Rectangle {

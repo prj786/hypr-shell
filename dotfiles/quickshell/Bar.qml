@@ -48,8 +48,10 @@ Scope {
     function updateClock() { bar.clockText = Qt.formatDateTime(new Date(), "ddd dd MMM   hh:mm AP") }
     Timer { interval: 1000; running: true; repeat: true; triggeredOnStart: true; onTriggered: bar.updateClock() }
 
-    // ── nmcli polls: VPN active → Globals.vpnActive, Wi-Fi connected → wifiUp ──
+    // ── nmcli polls: VPN active → Globals.vpnActive, Wi-Fi connected → wifiUp,
+    //    wired (ethernet) connected → wiredUp (shown when no Wi-Fi, e.g. VMs) ──
     property bool wifiUp: false
+    property bool wiredUp: false
     Process {
         id: vpnProc
         command: ["sh", "-c", "nmcli -t -f TYPE,STATE connection show --active 2>/dev/null | awk -F: '($1 ~ /vpn|wireguard|tun/) && $2==\"activated\"{print \"yes\"; exit}'"]
@@ -60,7 +62,12 @@ Scope {
         command: ["sh", "-c", "nmcli -t -f TYPE,STATE device 2>/dev/null | awk -F: '$1==\"wifi\" && $2==\"connected\"{print \"yes\"; exit}'"]
         stdout: StdioCollector { onStreamFinished: bar.wifiUp = (this.text.trim() === "yes") }
     }
-    Timer { interval: 5000; running: true; repeat: true; triggeredOnStart: true; onTriggered: { vpnProc.running = true; wifiProc.running = true; kbProc.running = true } }
+    Process {
+        id: wiredProc
+        command: ["sh", "-c", "nmcli -t -f TYPE,STATE device 2>/dev/null | awk -F: '$1==\"ethernet\" && $2==\"connected\"{print \"yes\"; exit}'"]
+        stdout: StdioCollector { onStreamFinished: bar.wiredUp = (this.text.trim() === "yes") }
+    }
+    Timer { interval: 5000; running: true; repeat: true; triggeredOnStart: true; onTriggered: { vpnProc.running = true; wifiProc.running = true; wiredProc.running = true; kbProc.running = true } }
 
     // ── keyboard layout indicator (US ↔ GE) ───────────────────────────────
     property string kbLayout: "US"
@@ -345,9 +352,15 @@ Scope {
                             anchors.centerIn: parent
                             spacing: 9
 
-                            // RunCat — runs faster under CPU load, sleeps when idle
-                            RunCat { anchors.verticalCenter: parent.verticalCenter }
-
+                            // Wired / ethernet (shown when a wired link is up and
+                            // Wi-Fi isn't — the common case in VMs and on docks)
+                            Text {
+                                visible: bar.wiredUp && !bar.wifiUp
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: bar.g(0xF0200)        // mdi-ethernet
+                                font.family: Theme.fontMono; font.pixelSize: 13
+                                color: Theme.fgSecondary
+                            }
                             // Wi-Fi (only when connected)
                             Text {
                                 visible: bar.wifiUp

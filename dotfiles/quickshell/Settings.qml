@@ -29,6 +29,7 @@ Scope {
         { ic: 0xF0614, label: "Default Apps" },
         { ic: 0xF030C, label: "Keyboard" },
         { ic: 0xF11C7, label: "Shortcuts" },
+        { ic: 0xF0264, label: "Layout" },
         { ic: 0xF0241, label: "Theme" },
         { ic: 0xF0DC3, label: "Dock" },
         { ic: 0xF0004, label: "User" }
@@ -37,7 +38,8 @@ Scope {
         if (pane === 2) { wifiDevProbe.running = true; wifiState.running = true; wifiScan.running = true; vpnScan.running = true; netProc.running = true; sshProc.running = true }
         else if (pane === 4) kbProc.running = true
         else if (pane === 5) scProc.running = true
-        else if (pane === 7) faceProc.running = true
+        else if (pane === 6) layoutProc.running = true
+        else if (pane === 9) faceProc.running = true
     }
 
     // ── persisted override state ───────────────────────────────────────────────
@@ -525,7 +527,7 @@ Scope {
                         anchors.fill: parent; anchors.topMargin: 60; anchors.margins: 20
                         contentHeight: paneLoader.item ? paneLoader.item.implicitHeight : 0
                         clip: true; boundsBehavior: Flickable.StopAtBounds
-                        Loader { id: paneLoader; width: parent.width; sourceComponent: [cSystem, cDisplays, cNetwork, cDefaults, cKeyboard, cShortcuts, cTheme, cDock, cUser][root.pane] }
+                        Loader { id: paneLoader; width: parent.width; sourceComponent: [cSystem, cDisplays, cNetwork, cDefaults, cKeyboard, cShortcuts, cLayout, cTheme, cDock, cUser][root.pane] }
                     }
                 }
             }
@@ -943,7 +945,25 @@ Scope {
                 }
             }
 
-            // ════════ PANE 6 — Theme & Accent ════════
+            // ════════ PANE 6 — Layout (gaps & border) ════════
+            Component {
+                id: cLayout
+                Column {
+                    spacing: 14
+                    SectionTitle { text: "WINDOW GAPS & BORDER  ·  applied live, persisted to generated/user.lua" }
+                    Card {
+                        Slider { label: "Inner gap"; value: root.gapsIn; from: 0; to: 30
+                            onMoved: function (v) { root.gapsIn = v; root.applyGaps() } }
+                        Slider { label: "Outer gap"; value: root.gapsOut; from: 0; to: 60
+                            onMoved: function (v) { root.gapsOut = v; root.applyGaps() } }
+                        Slider { label: "Border width"; value: root.borderSize; from: 0; to: 6
+                            onMoved: function (v) { root.borderSize = v; root.applyGaps() } }
+                    }
+                    Pill { label: "Reset to defaults"; onGo: { root.gapsIn = 6; root.gapsOut = 14; root.borderSize = 1; root.applyGaps() } }
+                }
+            }
+
+            // ════════ PANE 7 — Theme & Accent ════════
             Component {
                 id: cTheme
                 Column {

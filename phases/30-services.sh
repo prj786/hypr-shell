@@ -63,6 +63,11 @@ phase_services() {
               [ "${IS_VM:-0}" = "1" ] && printf 'export WLR_RENDERER_ALLOW_SOFTWARE=1\n'
               printf 'export XDG_CONFIG_DIRS="${XDG_CONFIG_DIRS:-/etc/xdg}"\n'
               printf 'export XDG_CACHE_HOME="${XDG_CACHE_HOME:-/tmp/hyprshell-greeter}"\n'
+              # cage offers no server-side decorations, so Qt draws its OWN client-side
+              # titlebar (min/max/close) around the greeter — which is why it looked
+              # "in a window". Disable Qt CSD so the greeter is borderless/fullscreen.
+              printf 'export QT_QPA_PLATFORM=wayland\n'
+              printf 'export QT_WAYLAND_DISABLE_WINDOWDECORATION=1\n'
               printf 'exec cage -s -- sh -c "qs -c hyprshell-greeter || regreet"\n'
             } | sudo_run tee /usr/local/bin/hypr-shell-greeter >/dev/null \
               && sudo_run chmod 755 /usr/local/bin/hypr-shell-greeter \
