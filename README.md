@@ -50,8 +50,9 @@ genuinely safe and the whole thing is re-runnable.
   bluetooth, power, terminals, **Qt/KDE utility apps** (Dolphin, Ark, Gwenview,
   Okular, Kate, mpv), GTK browser/editors, utilities, theming + fonts, dev tooling,
   gaming (multilib), tuning, build deps.
-- **`packages/aur.list`** — AUR packages (built via paru): cursor theme, `nwg-look`,
-  `gpu-screen-recorder`. Kept deliberately short.
+- **`packages/aur.list`** — AUR packages (built via paru): just `gpu-screen-recorder`.
+  Kept deliberately short. Theme/icon/cursor/accent are owned by the Quickshell
+  Settings app (no `nwg-look` or other theme-settings GUI).
 - **GPU/Vulkan drivers** are *not* in the lists — phase 40 installs the right set
   for the detected vendor (intel / amd / nvidia).
 

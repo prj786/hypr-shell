@@ -1,5 +1,8 @@
 # aur.list — AUR packages, installed via the helper (paru) bootstrapped in
 # phase 10. One per line; # comments and blanks ignored. Keep this short: every
 # entry is a from-source build, so only put here what the official repos lack.
-nwg-look                   # GTK theme/icon/cursor settings GUI for Wayland (no GNOME control center)
+#
+# No theme-settings GUI here (e.g. nwg-look): theme/icon/cursor/accent are owned
+# end-to-end by the Quickshell Settings app (scripts/colorscheme.sh writes the
+# GTK/Qt/KDE config). One place to manage everything — no extra app.
 gpu-screen-recorder        # GPU-encoded screen capture + replay buffer (VAAPI/NVENC)

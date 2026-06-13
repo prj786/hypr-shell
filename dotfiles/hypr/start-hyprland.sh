@@ -1,15 +1,38 @@
 #!/usr/bin/env bash
 # start-hyprland.sh — the session-entry wrapper used by "Hyprland (DE)".
 #
-# Most toolkit env (Qt/GTK/cursor) is set inside hyprland.lua via hl.env() so
-# every client inherits it. This wrapper only sets the pre-launch desktop
-# identity (so portals resolve the Hyprland backend) and a software-render
-# escape hatch for the brand-new Lunar Lake iGPU, then exec's Hyprland.
+# This wrapper sets the pre-launch desktop identity (so portals resolve the
+# Hyprland backend), the toolkit theming env, and a software-render escape
+# hatch for the brand-new Lunar Lake iGPU, then exec's Hyprland.
 
 export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=Hyprland
 export XDG_SESSION_DESKTOP=Hyprland
 export DESKTOP_SESSION=hyprland
+
+# ── Toolkit theming env — MUST be exported HERE, before `exec Hyprland`, not only
+#    via hl.env() in hyprland.lua. hl.env applies to Hyprland's children, but its
+#    propagation is unreliable for apps launched on-demand. The exact symptom of
+#    that miss: Qt/KDE apps (Dolphin) show the right ICONS — KIconLoader reads
+#    ~/.config/kdeglobals [Icons] directly — but a WHITE palette, because
+#    QT_QPA_PLATFORMTHEME never reached them, so qt6ct's Breeze widget style was
+#    never applied and Qt fell back to the light default Fusion palette (which
+#    ignores kdeglobals colours). Exporting here puts these in the real process
+#    environment of Hyprland AND every descendant, however it's spawned.
+#    Keep in sync with scripts/colorscheme.sh (writes the qt6ct.conf + kdeglobals
+#    these point at) and ~/.icons/default (cursor inheritance).
+export QT_QPA_PLATFORM="wayland;xcb"
+export QT_QPA_PLATFORMTHEME=qt6ct          # qt6ct → style=Breeze → reads kdeglobals colours
+export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+export QT_AUTO_SCREEN_SCALE_FACTOR=1
+export XCURSOR_THEME=Mocu-White-Right      # one cursor everywhere (XWayland + every toolkit)
+export XCURSOR_SIZE=24
+export HYPRCURSOR_SIZE=24
+export GDK_BACKEND="wayland,x11"
+export SDL_VIDEODRIVER=wayland
+export CLUTTER_BACKEND=wayland
+export MOZ_ENABLE_WAYLAND=1
+export _JAVA_AWT_WM_NONREPARENTING=1
 
 # Locally-built tools (e.g. hyprland-per-window-layout in step 6 of install.sh)
 # live in ~/.local/bin — make sure the session and its children can find them.

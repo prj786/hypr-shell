@@ -56,7 +56,7 @@ _bootstrap_aur() {
         if _helper_works paru; then AUR_HELPER=paru; export AUR_HELPER; ok "paru installed (built from source)"
         else warn "paru built but still not runnable — AUR packages will be skipped."; fi
     else
-        warn "paru bootstrap failed — AUR extras (nwg-look, gpu-screen-recorder) skipped. Non-critical: themes install from source regardless."
+        warn "paru bootstrap failed — AUR extras (gpu-screen-recorder) skipped. Non-critical: themes install from source regardless."
     fi
     rm -rf "$t"
 }

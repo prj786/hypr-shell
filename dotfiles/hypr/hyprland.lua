@@ -40,30 +40,15 @@ hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" 
 
 
 -- ╭───────────────────────────────────────────────────────────────╮
--- │ ENVIRONMENT — ported from the Qtile session-env.sh             │
--- │ Every Hyprland child (Waybar, swaync, apps) inherits these.    │
+-- │ ENVIRONMENT                                                     │
 -- ╰───────────────────────────────────────────────────────────────╯
--- Cursor — Mocu (XCursor) forced for XWayland + every toolkit. Keep this in sync
--- with scripts/colorscheme.sh (GTK/Qt/KDE) and ~/.icons/default so the cursor
--- never flips between GTK and Qt apps. NO HYPRCURSOR_THEME on purpose → Hyprland
--- uses the same XCursor theme as everything else (one cursor everywhere).
-hl.env("XCURSOR_THEME", "Mocu-White-Right")
-hl.env("XCURSOR_SIZE", "24")
-hl.env("HYPRCURSOR_SIZE", "24")
-
--- Qt: prefer Wayland, fall back to xcb (XWayland); theme via qt6ct so the
--- adw-gtk3 colours carry into Qt apps; let the compositor draw decorations.
-hl.env("QT_QPA_PLATFORM", "wayland;xcb")
-hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
-hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
-hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
-
--- GTK / GDK, SDL, Clutter, Mozilla, Java — opt into Wayland where supported.
-hl.env("GDK_BACKEND", "wayland,x11")
-hl.env("SDL_VIDEODRIVER", "wayland")
-hl.env("CLUTTER_BACKEND", "wayland")
-hl.env("MOZ_ENABLE_WAYLAND", "1")
-hl.env("_JAVA_AWT_WM_NONREPARENTING", "1")
+-- The toolkit theming env (QT_QPA_PLATFORMTHEME, XCURSOR_THEME, GDK_BACKEND, …)
+-- is exported in start-hyprland.sh BEFORE `exec Hyprland`, not here. hl.env()
+-- applies to Hyprland's children but its propagation to apps launched on-demand
+-- is unreliable — the failure mode is Qt/KDE apps (Dolphin) getting the right
+-- icons but a white palette (QT_QPA_PLATFORMTHEME never reached them, so the
+-- Breeze style/kdeglobals colours weren't applied). Exporting in the wrapper
+-- puts them in the real process environment of every descendant. See that file.
 
 
 -- ╭───────────────────────────────────────────────────────────────╮
