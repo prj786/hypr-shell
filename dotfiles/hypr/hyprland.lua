@@ -105,6 +105,11 @@ hl.config({
     misc = {
         disable_hyprland_logo   = true,
         force_default_wallpaper = 0,
+        -- Silence "Hyprland was started without start-hyprland." We launch via our
+        -- own session wrapper (start-hyprland.sh) from greetd and propagate the
+        -- systemd/DBus activation env in scripts/autostart.sh, so Hyprland's own
+        -- start-hyprland watchdog wrapper isn't used — by design, not a mistake.
+        disable_watchdog_warning = true,
     },
 
     -- Cursor on Lunar Lake / Arc 140V (`xe` driver). Two failure modes exist:
