@@ -79,6 +79,27 @@ Scope {
         return out
     }
 
+    // ── app suggestions ── when a search matches no OPEN window, offer apps from
+    // the desktop database (launchers, not files) whose name/id contains the query.
+    readonly property var appSuggest: suggestApps()
+    function suggestApps() {
+        var q = root.query.trim().toLowerCase()
+        if (q.length < 2) return []
+        var all = DesktopEntries.applications ? DesktopEntries.applications.values : []
+        var pre = [], mid = []
+        for (var i = 0; i < all.length; i++) {
+            var a = all[i]
+            if (!a || a.noDisplay) continue
+            var name = (a.name || "").toLowerCase()
+            var hay = name + " " + (a.genericName || "").toLowerCase() + " " + (a.comment || "").toLowerCase()
+            if (hay.indexOf(q) < 0) continue
+            if (name.indexOf(q) === 0) pre.push(a); else mid.push(a)   // name-prefix first
+        }
+        return pre.concat(mid).slice(0, 8)
+    }
+    function appIcon(a) { return Quickshell.iconPath(a && a.icon ? a.icon : "", "application-x-executable") }
+    function launchApp(a) { if (a) a.execute(); root.close() }
+
     // ── actions ──
     function jump(tl) {
         if (tl && tl.wayland) tl.wayland.activate()
@@ -197,10 +218,10 @@ Scope {
                         color: Theme.fg; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsLarge
                         selectionColor: Theme.accent; selectByMouse: true; clip: true
                         onTextChanged: root.query = text
-                        Text { visible: search.text.length === 0; anchors.verticalCenter: parent.verticalCenter; text: "Search open windows…"; color: Theme.fgDim; font: search.font }
+                        Text { visible: search.text.length === 0; anchors.verticalCenter: parent.verticalCenter; text: "Search open windows — or type an app to launch…"; color: Theme.fgDim; font: search.font }
                         Keys.onPressed: function (ev) {
                             if (ev.key === Qt.Key_Escape) { root.close(); ev.accepted = true }
-                            else if (ev.key === Qt.Key_Return || ev.key === Qt.Key_Enter) { if (root.flat.length) root.jump(root.flat[root.sel]); ev.accepted = true }
+                            else if (ev.key === Qt.Key_Return || ev.key === Qt.Key_Enter) { if (root.flat.length) root.jump(root.flat[root.sel]); else if (root.appSuggest.length) root.launchApp(root.appSuggest[0]); ev.accepted = true }
                             else if (ev.key === Qt.Key_Left || ev.key === Qt.Key_Up) { root.sel = Math.max(0, root.sel - 1); ev.accepted = true }
                             else if (ev.key === Qt.Key_Right || ev.key === Qt.Key_Down) { root.sel = Math.min(root.flat.length - 1, root.sel + 1); ev.accepted = true }
                         }
@@ -209,19 +230,73 @@ Scope {
             }
 
             // ── empty state ── (on top, so a no-match search shows it immediately)
+            // When a search matches no OPEN window but DOES match installed apps,
+            // offer them as launchers instead of a dead end.
             Column {
                 anchors.centerIn: parent
                 z: 50
+                width: Math.min(stage.width - 120, 760)
                 visible: root.flat.length === 0
-                spacing: 10
+                spacing: 16
+
+                // app-suggestion path
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
+                    visible: root.appSuggest.length > 0
+                    text: "No open window — launch an app"
+                    color: Theme.fgSecondary; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsBody; font.weight: Font.DemiBold
+                }
+                Flow {
+                    width: parent.width
+                    visible: root.appSuggest.length > 0
+                    spacing: 12
+                    // centre the wrapped rows
+                    Repeater {
+                        model: root.appSuggest
+                        delegate: Rectangle {
+                            required property var modelData
+                            required property int index
+                            width: 184; height: 56; radius: Theme.radiusInner
+                            color: saMa.containsMouse ? Theme.accent : Theme.elevated
+                            // first match is the Enter target — hint it with an accent outline
+                            border.color: index === 0 ? Theme.accent : Theme.stroke; border.width: 1
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Row {
+                                anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 11
+                                Image {
+                                    anchors.verticalCenter: parent.verticalCenter; width: 34; height: 34
+                                    sourceSize.width: 68; sourceSize.height: 68; source: root.appIcon(modelData)
+                                }
+                                Column {
+                                    anchors.verticalCenter: parent.verticalCenter; width: parent.width - 45; spacing: 1
+                                    Text { width: parent.width; text: modelData.name || ""; elide: Text.ElideRight
+                                        color: saMa.containsMouse ? Theme.accentText : Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; font.weight: Font.DemiBold }
+                                    Text { width: parent.width; visible: !!modelData.genericName; text: modelData.genericName || ""; elide: Text.ElideRight
+                                        color: saMa.containsMouse ? Theme.accentText : Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10 }
+                                }
+                            }
+                            MouseArea { id: saMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.launchApp(modelData) }
+                        }
+                    }
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: root.appSuggest.length > 0
+                    text: "Enter to launch the first match"
+                    color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall
+                }
+
+                // no-suggestion fallback
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: root.appSuggest.length === 0
                     text: root.g(root.query.length ? 0xF0349 : 0xF03A1)   // magnify-close : monitor-off
                     font.family: Theme.fontMono; font.pixelSize: 40; color: Theme.fgDim
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: root.query.length ? ("No windows match “" + root.query + "”") : "No open windows"
+                    visible: root.appSuggest.length === 0
+                    text: root.query.length ? ("No windows or apps match “" + root.query + "”") : "No open windows"
                     color: Theme.fgDim; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsTitle
                 }
             }

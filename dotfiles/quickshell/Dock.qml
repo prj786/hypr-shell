@@ -36,10 +36,15 @@ Scope {
     PanelWindow {
         id: win
         screen: { var fm = Hyprland.focusedMonitor; if (!fm) return null; var ss = Quickshell.screens; for (var i = 0; i < ss.length; i++) if (ss[i].name === fm.name) return ss[i]; return null }
-        visible: Globals.dockEnabled
+        // Always shown while the Overview is open — even if the dock is disabled or
+        // set to autohide (the Overview is a launch surface, so the dock belongs there).
+        visible: Globals.dockEnabled || Globals.overviewOpen
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.layer: WlrLayer.Top
+        // Jump to the Overlay layer while the Overview is open so the dock floats ABOVE
+        // the Overview's dim scrim (which is itself on the Overlay layer); otherwise it
+        // would be dimmed underneath. Back to Top the rest of the time.
+        WlrLayershell.layer: Globals.overviewOpen ? WlrLayer.Overlay : WlrLayer.Top
         WlrLayershell.namespace: "quickshell:dock"
         anchors { bottom: true; left: true; right: true }
 
@@ -48,11 +53,12 @@ Scope {
         implicitHeight: dockH + 18
 
         // Revealed when: autohide off · hovering the fixed bottom edge · hovering the
-        // dock itself · a popup is open · within the close grace period. The bottom
-        // edge trigger is FIXED (never moves), so revealing can't slide the dock out
-        // from under the cursor → no flicker.
+        // dock itself · a popup is open · within the close grace period · the Overview
+        // is open. The bottom edge trigger is FIXED (never moves), so revealing can't
+        // slide the dock out from under the cursor → no flicker.
         property bool revealed: !Globals.dockAutohide || edgeHov.hovered || dockHov.hovered
                                  || closeHold.running || Globals.launcherOpen || Globals.storeOpen
+                                 || Globals.overviewOpen
         Timer { id: closeHold; interval: 280 }
         function maybeHide() { if (!edgeHov.hovered && !dockHov.hovered && !Globals.launcherOpen && !Globals.storeOpen) closeHold.restart() }
         Connections { target: edgeHov; function onHoveredChanged() { win.maybeHide() } }
