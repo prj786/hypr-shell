@@ -80,8 +80,23 @@ Scope {
     }
     function setBrightness(v) { root.brightnessVal = v; Quickshell.execDetached(["brightnessctl", "set", Math.round(v * 100) + "%"]) }
     function setVolume(v) { root.volumeVal = v; Quickshell.execDetached(["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", Math.round(v * 100) + "%"]) }
-    // fire a power action, then collapse the popup + control centre
-    function powerAction(cmd) { Quickshell.execDetached(cmd); root.powerOpen = false; Globals.controlOpen = false }
+    // ── power actions ──
+    // All session/power actions go through ~/.config/hypr/scripts/power.sh: one
+    // tested, distro-agnostic path per action (logout via loginctl, not the
+    // unreliable Lua `hyprctl dispatch exit`). Destructive actions (Log Out,
+    // Restart, Shut Down) ask for confirmation via a themed popover first;
+    // reversible ones (Lock, Suspend) run immediately.
+    property string confirmAction: ""   // "" = no confirmation showing
+    property string confirmTitle: ""
+    property string confirmVerb: ""
+    function runPower(action) {
+        Quickshell.execDetached(["sh", "-c", "exec \"$HOME/.config/hypr/scripts/power.sh\" " + action])
+        root.confirmAction = ""; root.powerOpen = false; Globals.controlOpen = false
+    }
+    function askPower(action, title, verb) {
+        root.powerOpen = false
+        root.confirmTitle = title; root.confirmVerb = verb; root.confirmAction = action
+    }
 
     Connections { target: Globals; function onControlOpenChanged() { if (Globals.controlOpen) root.refresh() } }
     IpcHandler {
@@ -694,11 +709,98 @@ Scope {
 
                     Rectangle { width: parent.width; height: 1; color: Theme.stroke; opacity: 0.6 }
 
-                    PowerItem { ic: 0xF033E; label: "Lock";      onGo: root.powerAction(["sh", "-c", "\"$HOME/.config/hypr/scripts/lock.sh\""]) }
-                    PowerItem { ic: 0xF0904; label: "Suspend";   onGo: root.powerAction(["systemctl", "suspend"]) }
-                    PowerItem { ic: 0xF0343; label: "Log Out";   onGo: root.powerAction(["hyprctl", "dispatch", "hl.dsp.exit()"]) }
-                    PowerItem { ic: 0xF0709; label: "Restart";   onGo: root.powerAction(["systemctl", "reboot"]) }
-                    PowerItem { ic: 0xF0425; label: "Shut Down"; danger: true; onGo: root.powerAction(["systemctl", "poweroff"]) }
+                    PowerItem { ic: 0xF033E; label: "Lock";      onGo: root.runPower("lock") }
+                    PowerItem { ic: 0xF0904; label: "Suspend";   onGo: root.runPower("suspend") }
+                    PowerItem { ic: 0xF0343; label: "Log Out";   onGo: root.askPower("logout", "Log out?", "Log Out") }
+                    PowerItem { ic: 0xF0709; label: "Restart";   onGo: root.askPower("reboot", "Restart this computer?", "Restart") }
+                    PowerItem { ic: 0xF0425; label: "Shut Down"; danger: true; onGo: root.askPower("poweroff", "Shut down this computer?", "Shut Down") }
+                }
+            }
+
+            // ── Confirmation popover: themed "are you sure?" for destructive
+            //    actions (Log Out / Restart / Shut Down). Esc or clicking the
+            //    dimmed backdrop cancels. ──
+            Item {
+                id: confirmPop
+                anchors.fill: parent
+                visible: root.confirmAction !== "" || cfCloseTimer.running
+                z: 100
+                Timer { id: cfCloseTimer; interval: 200 }
+                Connections { target: root; function onConfirmActionChanged() { if (root.confirmAction === "") cfCloseTimer.restart() } }
+
+                readonly property bool danger: root.confirmAction === "poweroff" || root.confirmAction === "reboot"
+
+                // dimmed backdrop — click anywhere outside the card to cancel
+                Rectangle {
+                    anchors.fill: parent
+                    color: "#000000"
+                    opacity: root.confirmAction !== "" ? 0.45 : 0
+                    Behavior on opacity { NumberAnimation { duration: 140 } }
+                    MouseArea { anchors.fill: parent; onClicked: root.confirmAction = "" }
+                }
+
+                Rectangle {
+                    id: cfCard
+                    anchors.centerIn: parent
+                    width: 252
+                    height: cfCol.implicitHeight + 36
+                    radius: 18
+                    color: Theme.elevated
+                    border.color: Theme.stroke; border.width: 1
+                    opacity: root.confirmAction !== "" ? 1 : 0
+                    scale: root.confirmAction !== "" ? 1 : 0.92
+                    Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                    Behavior on scale { NumberAnimation { duration: 170; easing.type: Easing.OutCubic } }
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true
+                        shadowColor: Theme.shadow
+                        shadowOpacity: 0.55
+                        shadowBlur: 1.0
+                        shadowVerticalOffset: 9
+                        blurMax: 48
+                    }
+                    MouseArea { anchors.fill: parent }   // swallow clicks on the card
+
+                    Column {
+                        id: cfCol
+                        anchors.centerIn: parent
+                        width: parent.width - 32
+                        spacing: 14
+
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: root.g(confirmPop.danger ? 0xF0425 : 0xF0343)
+                            font.family: Theme.fontMono; font.pixelSize: 32
+                            color: confirmPop.danger ? Theme.danger : Theme.accent
+                        }
+                        Text {
+                            width: parent.width; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
+                            text: root.confirmTitle
+                            color: Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsBody; font.weight: Font.DemiBold
+                        }
+
+                        Row {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            spacing: 10
+                            // Cancel
+                            Rectangle {
+                                width: (cfCol.width - 10) / 2; height: 38; radius: 10
+                                color: cancelMa.containsMouse ? Theme.hover : Theme.panel
+                                border.color: Theme.stroke; border.width: 1
+                                Text { anchors.centerIn: parent; text: "Cancel"; color: Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; font.weight: Font.Medium }
+                                MouseArea { id: cancelMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.confirmAction = "" }
+                            }
+                            // Confirm
+                            Rectangle {
+                                width: (cfCol.width - 10) / 2; height: 38; radius: 10
+                                color: confirmMa.containsMouse ? (confirmPop.danger ? Theme.danger : Theme.accent)
+                                                               : Qt.rgba((confirmPop.danger ? Theme.danger : Theme.accent).r, (confirmPop.danger ? Theme.danger : Theme.accent).g, (confirmPop.danger ? Theme.danger : Theme.accent).b, 0.18)
+                                Text { anchors.centerIn: parent; text: root.confirmVerb; color: confirmMa.containsMouse ? Theme.accentText : (confirmPop.danger ? Theme.danger : Theme.accent); font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; font.weight: Font.DemiBold }
+                                MouseArea { id: confirmMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.runPower(root.confirmAction) }
+                            }
+                        }
+                    }
                 }
             }
         }
