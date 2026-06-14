@@ -67,7 +67,23 @@ EOF
   [ -n "$sock" ] || die "nested compositor never opened a socket — see $WORK/hypr.log"
   local nestwd; nestwd="$(basename "$sock")"
 
-  WAYLAND_DISPLAY="$nestwd" QT_QPA_PLATFORM=wayland \
+  # Find the nested instance's signature so the shell (Quickshell.Hyprland) and
+  # our hyprctl talk to the NESTED compositor, not the host. Without this the
+  # nested qs inherits the host HYPRLAND_INSTANCE_SIGNATURE and would read/move
+  # the host's real windows — fine for static panes, dangerous for Overview drag.
+  local nestsig=""
+  for _ in $(seq 1 20); do
+    nestsig="$(HYPRLAND_INSTANCE_SIGNATURE= hyprctl instances -j 2>/dev/null \
+      | python3 -c "import sys,json
+try:
+  print(next(i['instance'] for i in json.load(sys.stdin) if i.get('wl_socket')=='$nestwd'))
+except Exception: pass" 2>/dev/null)"
+    [ -n "$nestsig" ] && break
+    sleep 0.2
+  done
+  [ -n "$nestsig" ] || die "could not resolve nested Hyprland instance signature"
+
+  WAYLAND_DISPLAY="$nestwd" HYPRLAND_INSTANCE_SIGNATURE="$nestsig" QT_QPA_PLATFORM=wayland \
     qs -p "$QSDIR" > "$WORK/qs.log" 2>&1 &
   local qpid=$!
   for _ in $(seq 1 30); do
@@ -76,15 +92,17 @@ EOF
     kill -0 $qpid 2>/dev/null || die "qs died — see $WORK/qs.log"
   done
 
-  { echo "HYPR_PID=$hpid"; echo "QS_PID=$qpid"; echo "NEST_WD=$nestwd"; } > "$STATE"
-  echo "up: nested compositor on $nestwd (hypr pid $hpid), shell qs pid $qpid"
-  echo "    config loaded — try: driver.sh open settings"
+  { echo "HYPR_PID=$hpid"; echo "QS_PID=$qpid"; echo "NEST_WD=$nestwd"; echo "NEST_SIG=$nestsig"; } > "$STATE"
+  echo "up: nested compositor on $nestwd (hypr pid $hpid, sig $nestsig), shell qs pid $qpid"
+  echo "    config loaded — try: driver.sh open settings  |  driver.sh spawn foot"
 }
 
 cmd_ipc()     { load; WAYLAND_DISPLAY="$NEST_WD" qs ipc --pid "$QS_PID" call "$@"; }
 cmd_targets() { load; WAYLAND_DISPLAY="$NEST_WD" qs ipc --pid "$QS_PID" show; }
 cmd_shot()    { load; WAYLAND_DISPLAY="$NEST_WD" grim "$OUTDIR/${1:-shell.png}" && echo "wrote $OUTDIR/${1:-shell.png}"; }
 cmd_log()     { tail -n "${1:-25}" "$WORK/qs.log"; }
+cmd_hc()      { load; HYPRLAND_INSTANCE_SIGNATURE="$NEST_SIG" hyprctl "$@"; }
+cmd_spawn()   { load; HYPRLAND_INSTANCE_SIGNATURE="$NEST_SIG" hyprctl dispatch exec "$*" >/dev/null && echo "spawned: $*"; }
 cmd_check()   { command -v luac >/dev/null || die "luac not found"; ( cd "$REPO/dotfiles/hypr" && luac -p hyprland.lua colors.lua && echo "lua config: syntax OK" ); }
 
 cmd_open() {
@@ -117,6 +135,8 @@ case "${1:-}" in
   open)    shift; cmd_open "$@" ;;
   shot)    shift; cmd_shot "$@" ;;
   targets) cmd_targets ;;
+  hc)      shift; cmd_hc "$@" ;;
+  spawn)   shift; cmd_spawn "$@" ;;
   log)     shift; cmd_log "$@" ;;
   check)   cmd_check ;;
   down)    cmd_down ;;
