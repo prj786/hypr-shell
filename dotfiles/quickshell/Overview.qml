@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import Quickshell.Widgets
 import Quickshell.Io
 
 // Overview — a Mission-Control-style window switcher, opened by tapping Super alone.
@@ -207,12 +208,22 @@ Scope {
                 }
             }
 
-            // ── empty state ──
-            Text {
+            // ── empty state ── (on top, so a no-match search shows it immediately)
+            Column {
                 anchors.centerIn: parent
+                z: 50
                 visible: root.flat.length === 0
-                text: root.query.length ? "No matching windows" : "No open windows"
-                color: Theme.fgDim; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsTitle
+                spacing: 10
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: root.g(root.query.length ? 0xF0349 : 0xF03A1)   // magnify-close : monitor-off
+                    font.family: Theme.fontMono; font.pixelSize: 40; color: Theme.fgDim
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: root.query.length ? ("No windows match “" + root.query + "”") : "No open windows"
+                    color: Theme.fgDim; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsTitle
+                }
             }
 
             // ── horizontal strip of desktop cards ──
@@ -316,7 +327,12 @@ Scope {
                                                 if (col && col.ws !== undefined && col.ws >= 1) root.moveWin(modelData, col.ws)
                                             }
 
-                                            Rectangle {
+                                            // ClippingRectangle (not Rectangle): QML `clip` only clips to a
+                                            // rectangle, so a square preview/title-chip pokes its corners out
+                                            // past the rounded card. ClippingRectangle clips children to the
+                                            // rounded border, so the preview AND the title chip are properly
+                                            // rounded (no sharp corners bleeding out).
+                                            ClippingRectangle {
                                                 id: cardContent
                                                 width: dragArea.width
                                                 height: dragArea.height
@@ -324,7 +340,6 @@ Scope {
                                                 color: Theme.panel
                                                 border.color: dragArea.seld ? Theme.accent : Theme.stroke
                                                 border.width: dragArea.seld ? 2 : 1
-                                                clip: true
 
                                                 Drag.active: dragArea.drag.active
                                                 Drag.source: dragArea
@@ -346,7 +361,7 @@ Scope {
                                                     visible: hasContent && dragArea.modelData.wayland
                                                     captureSource: dragArea.modelData.wayland || null
                                                     live: Globals.overviewOpen && !cardContent.Drag.active
-                                                    anchors.fill: parent; anchors.margins: 2
+                                                    anchors.fill: parent
                                                 }
                                                 Image {
                                                     anchors.centerIn: parent; visible: !sc.visible
