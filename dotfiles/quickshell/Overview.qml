@@ -5,12 +5,15 @@ import Quickshell.Hyprland
 import Quickshell.Io
 
 // Overview — a Mission-Control-style window switcher, opened by tapping Super alone.
-// Windows are grouped into ONE ROW PER WORKSPACE (row 1 = Desktop 1, …). You can:
+// Each workspace is a scaled-down "mini-desktop" CARD; cards sit in a horizontal
+// strip you scroll through (mouse wheel or trackpad, either axis). You can:
 //   · search (top field) to filter windows by title/app,
 //   · click a thumbnail (or Enter) to jump to that window,
-//   · DRAG a thumbnail into another row to move it to that workspace,
+//   · DRAG a thumbnail onto another desktop card to move it to that workspace
+//     (the trailing empty card moves it to a fresh desktop),
 //   · click the ✕ on a thumbnail to close that window.
-// The desktop behind is blurred + dimmed; this layer covers the top bar.
+// Keyboard ←/→ walks the windows and the strip auto-scrolls to keep the
+// selection in view. The desktop behind is blurred + dimmed; covers the top bar.
 //
 // Trigger: `qs ipc call overview toggle` (Super tap, release bind in hyprland.lua).
 Scope {
@@ -151,21 +154,39 @@ Scope {
             Behavior on opacity { NumberAnimation { duration: Theme.durBase; easing.type: Easing.OutCubic } }
             Behavior on scale   { NumberAnimation { duration: Theme.durBase; easing.type: Easing.OutCubic } }
 
-            readonly property int cardW: 234
-            readonly property int cardH: 158
+            // each desktop is a scaled-down monitor: keep the real screen aspect so
+            // it reads as a mini-desktop. Sized off the overlay height.
+            readonly property real monAR: (win.screen && win.screen.height > 0) ? (win.screen.width / win.screen.height) : 1.6
+            readonly property int deskCardH: Math.round(height * 0.46)
+            readonly property int deskCardW: Math.round(deskCardH * monAR)
+            readonly property int deskGap: 30
 
-            // ── search field (top-centre) ──
+            // scroll so the selected window's desktop is on-screen ("intelligent scroll")
+            function ensureSelVisible() {
+                if (root.flat.length === 0) return
+                var ws = root.wsOf(root.flat[root.sel]), idx = -1
+                for (var i = 0; i < root.wsRows.length; i++) if (root.wsRows[i].ws === ws) { idx = i; break }
+                if (idx < 0) return
+                var left = deskRow.x + idx * (deskCardW + deskGap)
+                var right = left + deskCardW
+                var maxX = Math.max(0, flick.contentWidth - flick.width)
+                if (left < flick.contentX + 24) flick.contentX = Math.max(0, left - 24)
+                else if (right > flick.contentX + flick.width - 24) flick.contentX = Math.min(maxX, right - flick.width + 24)
+            }
+            Connections { target: root; function onSelChanged() { stage.ensureSelVisible() } }
+
+            // ── search field (top-centre, pill) ──
             Rectangle {
                 id: searchBox
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: 40
-                width: 560; height: 50
-                radius: Theme.radiusInner
+                y: 36
+                width: 540; height: 48
+                radius: height / 2
                 color: Theme.elevated
                 border.color: Theme.accent; border.width: 2
                 Row {
                     anchors.fill: parent
-                    anchors.leftMargin: 18; anchors.rightMargin: 18
+                    anchors.leftMargin: 20; anchors.rightMargin: 20
                     spacing: 12
                     Text { anchors.verticalCenter: parent.verticalCenter; text: root.g(0xF002); font.family: Theme.fontMono; font.pixelSize: 17; color: Theme.fgDim }
                     TextInput {
@@ -194,178 +215,193 @@ Scope {
                 color: Theme.fgDim; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsTitle
             }
 
-            // ── workspace rows ──
+            // ── horizontal strip of desktop cards ──
             Flickable {
                 id: flick
                 anchors.left: parent.left; anchors.right: parent.right
-                anchors.top: searchBox.bottom; anchors.topMargin: 28
-                anchors.bottom: parent.bottom; anchors.bottomMargin: 28
-                contentHeight: rowsCol.height
+                anchors.top: searchBox.bottom; anchors.topMargin: 24
+                anchors.bottom: parent.bottom; anchors.bottomMargin: 24
                 clip: true
+                flickableDirection: Flickable.HorizontalFlick
                 boundsBehavior: Flickable.StopAtBounds
+                contentWidth: Math.max(width, deskRow.width + 80)
+                contentHeight: height
+                // smooth, "intelligent" scroll: vertical OR horizontal wheel both pan the
+                // strip; programmatic jumps (keyboard nav) glide via the Behavior below.
+                Behavior on contentX { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                WheelHandler {
+                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                    onWheel: function (ev) {
+                        var d = Math.abs(ev.angleDelta.y) > Math.abs(ev.angleDelta.x) ? ev.angleDelta.y : ev.angleDelta.x
+                        var maxX = Math.max(0, flick.contentWidth - flick.width)
+                        flick.contentX = Math.max(0, Math.min(maxX, flick.contentX - d))
+                    }
+                }
 
-                Column {
-                    id: rowsCol
-                    width: Math.min(flick.width - 80, (stage.cardW + 18) * 5)
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: 16
+                Row {
+                    id: deskRow
+                    height: flick.height
+                    // centre the strip when it fits; otherwise pin a left margin and scroll
+                    x: Math.max(40, (flick.contentWidth - width) / 2)
+                    spacing: stage.deskGap
 
                     Repeater {
                         model: root.wsRows
-                        delegate: Rectangle {
-                            id: rowItem
+                        delegate: Column {
+                            id: deskCol
                             required property var modelData
                             readonly property int ws: modelData.ws
                             readonly property bool isFocused: ws === root.focusedWs
-                            width: rowsCol.width
-                            height: Math.max(stage.cardH + 56, rowFlow.height + 44)
-                            radius: Theme.radius
-                            color: dropZone.containsDrag ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.16)
-                                 : isFocused ? Theme.elevated : Qt.rgba(Theme.elevated.r, Theme.elevated.g, Theme.elevated.b, 0.5)
-                            border.color: dropZone.containsDrag ? Theme.accent : (isFocused ? Theme.stroke : "transparent")
-                            border.width: 1
-                            Behavior on color { ColorAnimation { duration: Theme.durFast } }
+                            // thumbnail grid metrics (2 columns inside the mini-desktop)
+                            readonly property int pad: 16
+                            readonly property int thumbGap: 14
+                            readonly property int thumbW: Math.floor((stage.deskCardW - 2 * pad - thumbGap) / 2)
+                            readonly property int thumbH: Math.round(thumbW / stage.monAR)
+                            anchors.verticalCenter: parent.verticalCenter   // vertical anchor is safe inside a Row
+                            spacing: 12
 
-                            // used only for the drag-over highlight (containsDrag); the actual
-                            // move is done in the card's onReleased (see note there)
-                            DropArea {
-                                id: dropZone
-                                anchors.fill: parent
-                                keys: ["overview-window"]
-                            }
+                            // the mini-desktop card
+                            Rectangle {
+                                id: card
+                                width: stage.deskCardW; height: stage.deskCardH
+                                radius: Theme.radius
+                                color: dropZone.containsDrag ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.16)
+                                     : deskCol.isFocused ? Theme.elevated : Qt.rgba(Theme.elevated.r, Theme.elevated.g, Theme.elevated.b, 0.5)
+                                border.color: dropZone.containsDrag ? Theme.accent : (deskCol.isFocused ? Theme.accent : Theme.stroke)
+                                border.width: deskCol.isFocused || dropZone.containsDrag ? 2 : 1
+                                Behavior on color { ColorAnimation { duration: Theme.durFast } }
+                                clip: true
 
-                            // row label
-                            Row {
-                                anchors.left: parent.left; anchors.leftMargin: 16; anchors.top: parent.top; anchors.topMargin: 12
-                                spacing: 8
-                                Text { text: "Desktop " + rowItem.ws; color: rowItem.isFocused ? Theme.accent : Theme.fgSecondary; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsBody; font.weight: Font.DemiBold }
-                                Text { visible: rowItem.isFocused; text: "· current"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall }
-                            }
+                                // drag-over highlight only; the move is resolved in the thumb's onReleased
+                                DropArea { id: dropZone; anchors.fill: parent; keys: ["overview-window"] }
 
-                            // empty-row hint (also a drop target)
-                            Text {
-                                anchors.centerIn: parent
-                                visible: rowItem.modelData.wins.length === 0
-                                text: "Drop a window here → Desktop " + rowItem.ws
-                                color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall
-                            }
+                                // empty-desktop hint (also a drop target for a fresh desktop)
+                                Text {
+                                    anchors.centerIn: parent
+                                    width: parent.width - 32; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
+                                    visible: deskCol.modelData.wins.length === 0
+                                    text: "Drop a window here\n→ Desktop " + deskCol.ws
+                                    color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall
+                                }
 
-                            // window cards
-                            Flow {
-                                id: rowFlow
-                                anchors.left: parent.left; anchors.right: parent.right
-                                anchors.top: parent.top; anchors.topMargin: 38
-                                anchors.leftMargin: 16; anchors.rightMargin: 16
-                                spacing: 16
+                                // window thumbnails
+                                Flow {
+                                    id: deskFlow
+                                    anchors.fill: parent; anchors.margins: deskCol.pad
+                                    spacing: deskCol.thumbGap
 
-                                Repeater {
-                                    model: rowItem.modelData.wins
-                                    delegate: MouseArea {
-                                        id: dragArea
-                                        required property var modelData
-                                        property var winRef: modelData
-                                        readonly property int flatIdx: root.flat.indexOf(modelData)
-                                        readonly property bool seld: flatIdx === root.sel
-                                        width: stage.cardW; height: stage.cardH
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        drag.target: cardContent
-                                        drag.smoothed: false
-                                        property bool didDrag: false
-                                        onPressed: didDrag = false
-                                        onPositionChanged: { if (drag.active) didDrag = true; else root.sel = flatIdx }
-                                        onClicked: root.jump(modelData)
-                                        // Drop is resolved here, not via DropArea.onDropped: the card's
-                                        // ParentChange snaps it back the instant the drag ends, racing the
-                                        // drop event — so hit-test the cursor against the workspace rows.
-                                        onReleased: function (mouse) {
-                                            if (!didDrag) return
-                                            var p = dragArea.mapToItem(rowsCol, mouse.x, mouse.y)
-                                            var rowAt = rowsCol.childAt(p.x, p.y)
-                                            if (rowAt && rowAt.ws !== undefined && rowAt.ws >= 1) root.moveWin(modelData, rowAt.ws)
-                                        }
-
-                                        Rectangle {
-                                            id: cardContent
-                                            // explicit size + no anchors — an anchored item can't be dragged
-                                            width: dragArea.width
-                                            height: dragArea.height
-                                            radius: Theme.radius
-                                            color: Theme.panel
-                                            border.color: dragArea.seld ? Theme.accent : Theme.stroke
-                                            border.width: dragArea.seld ? 2 : 1
-
-                                            Drag.active: dragArea.drag.active
-                                            Drag.source: dragArea
-                                            Drag.hotSpot.x: width / 2
-                                            Drag.hotSpot.y: height / 2
-                                            Drag.keys: ["overview-window"]
-
-                                            // while dragging, float above the (clipping) Flickable; ParentChange
-                                            // saves & restores x/y, so it snaps back into place on release
-                                            states: State {
-                                                name: "dragging"; when: dragArea.drag.active
-                                                ParentChange { target: cardContent; parent: dragLayer }
-                                                PropertyChanges { target: cardContent; opacity: 0.9; z: 3000 }
+                                    Repeater {
+                                        model: deskCol.modelData.wins
+                                        delegate: MouseArea {
+                                            id: dragArea
+                                            required property var modelData
+                                            readonly property int flatIdx: root.flat.indexOf(modelData)
+                                            readonly property bool seld: flatIdx === root.sel
+                                            width: deskCol.thumbW; height: deskCol.thumbH
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            drag.target: cardContent
+                                            drag.smoothed: false
+                                            property bool didDrag: false
+                                            onPressed: didDrag = false
+                                            onPositionChanged: { if (drag.active) didDrag = true; else root.sel = flatIdx }
+                                            onClicked: root.jump(modelData)
+                                            // Resolve the drop here (not DropArea.onDropped): the ParentChange
+                                            // snaps the clone back the instant the drag ends, racing the drop
+                                            // event — so hit-test the cursor against the desktop strip.
+                                            onReleased: function (mouse) {
+                                                if (!didDrag) return
+                                                var p = dragArea.mapToItem(deskRow, mouse.x, mouse.y)
+                                                var col = deskRow.childAt(p.x, p.y)
+                                                if (col && col.ws !== undefined && col.ws >= 1) root.moveWin(modelData, col.ws)
                                             }
 
-                                            Column {
-                                                anchors.fill: parent; anchors.margins: 8; spacing: 6
-                                                Item {
-                                                    width: parent.width; height: parent.height - 28
-                                                    Rectangle { anchors.fill: parent; radius: Theme.radiusInner; color: Theme.bg }
-                                                    ScreencopyView {
-                                                        id: sc
-                                                        visible: hasContent && dragArea.modelData.wayland
-                                                        captureSource: dragArea.modelData.wayland || null
-                                                        live: Globals.overviewOpen && !cardContent.Drag.active
-                                                        anchors.centerIn: parent
-                                                        property real ar: (sourceSize.width > 0 && sourceSize.height > 0) ? (sourceSize.width / sourceSize.height) : 1.6
-                                                        width: (parent.width / parent.height > ar) ? parent.height * ar : parent.width
-                                                        height: width / ar
-                                                    }
-                                                    Image {
-                                                        anchors.centerIn: parent; visible: !sc.visible
-                                                        width: 48; height: 48; sourceSize.width: 96; sourceSize.height: 96
-                                                        source: root.iconFor(dragArea.modelData)
-                                                    }
+                                            Rectangle {
+                                                id: cardContent
+                                                width: dragArea.width
+                                                height: dragArea.height
+                                                radius: Theme.radiusInner
+                                                color: Theme.panel
+                                                border.color: dragArea.seld ? Theme.accent : Theme.stroke
+                                                border.width: dragArea.seld ? 2 : 1
+                                                clip: true
+
+                                                Drag.active: dragArea.drag.active
+                                                Drag.source: dragArea
+                                                Drag.hotSpot.x: width / 2
+                                                Drag.hotSpot.y: height / 2
+                                                Drag.keys: ["overview-window"]
+
+                                                // float above the clipping card/flickable while dragging;
+                                                // ParentChange saves & restores x/y, snapping back on release
+                                                states: State {
+                                                    name: "dragging"; when: dragArea.drag.active
+                                                    ParentChange { target: cardContent; parent: dragLayer }
+                                                    PropertyChanges { target: cardContent; opacity: 0.92; z: 3000 }
                                                 }
-                                                Row {
-                                                    width: parent.width; spacing: 7
-                                                    Image { anchors.verticalCenter: parent.verticalCenter; width: 18; height: 18; sourceSize.width: 36; sourceSize.height: 36; source: root.iconFor(dragArea.modelData) }
-                                                    Text {
-                                                        anchors.verticalCenter: parent.verticalCenter; width: parent.width - 26
-                                                        text: root.titleOf(dragArea.modelData)
-                                                        color: dragArea.seld ? Theme.fg : Theme.fgSecondary
-                                                        font.family: Theme.fontText; font.pixelSize: Theme.fsSmall
-                                                        font.weight: dragArea.seld ? Font.DemiBold : Font.Normal
-                                                        elide: Text.ElideRight
+
+                                                // live window preview, icon fallback
+                                                ScreencopyView {
+                                                    id: sc
+                                                    visible: hasContent && dragArea.modelData.wayland
+                                                    captureSource: dragArea.modelData.wayland || null
+                                                    live: Globals.overviewOpen && !cardContent.Drag.active
+                                                    anchors.fill: parent; anchors.margins: 2
+                                                }
+                                                Image {
+                                                    anchors.centerIn: parent; visible: !sc.visible
+                                                    width: 40; height: 40; sourceSize.width: 80; sourceSize.height: 80
+                                                    source: root.iconFor(dragArea.modelData)
+                                                }
+
+                                                // title chip (bottom), with app icon
+                                                Rectangle {
+                                                    anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
+                                                    height: 24
+                                                    color: Qt.rgba(0, 0, 0, 0.55)
+                                                    Row {
+                                                        anchors.fill: parent; anchors.leftMargin: 6; anchors.rightMargin: 6; spacing: 6
+                                                        Image { anchors.verticalCenter: parent.verticalCenter; width: 14; height: 14; sourceSize.width: 28; sourceSize.height: 28; source: root.iconFor(dragArea.modelData) }
+                                                        Text {
+                                                            anchors.verticalCenter: parent.verticalCenter; width: parent.width - 22
+                                                            text: root.titleOf(dragArea.modelData)
+                                                            color: dragArea.seld ? Theme.fg : Theme.fgSecondary
+                                                            font.family: Theme.fontText; font.pixelSize: 11
+                                                            font.weight: dragArea.seld ? Font.DemiBold : Font.Normal
+                                                            elide: Text.ElideRight
+                                                        }
                                                     }
                                                 }
                                             }
-                                        }
 
-                                        // close (✕) — sibling of the card so it's always on top and
-                                        // unaffected by the card reparenting during a drag
-                                        Rectangle {
-                                            id: closeBtn
-                                            anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 7
-                                            z: 50
-                                            width: 22; height: 22; radius: 11
-                                            visible: !dragArea.drag.active && (dragArea.containsMouse || closeMa.containsMouse)
-                                            color: closeMa.containsMouse ? Theme.danger : Qt.rgba(0, 0, 0, 0.6)
-                                            Text { anchors.centerIn: parent; text: root.g(0xF0156); font.family: Theme.fontMono; font.pixelSize: 13; color: Theme.accentText }
-                                            MouseArea { id: closeMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.killWin(dragArea.modelData) }
+                                            // close (✕) — sibling of the clone so it stays on top + unaffected by drag
+                                            Rectangle {
+                                                anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 6
+                                                z: 50
+                                                width: 20; height: 20; radius: 10
+                                                visible: !dragArea.drag.active && (dragArea.containsMouse || closeMa.containsMouse)
+                                                color: closeMa.containsMouse ? Theme.danger : Qt.rgba(0, 0, 0, 0.6)
+                                                Text { anchors.centerIn: parent; text: root.g(0xF0156); font.family: Theme.fontMono; font.pixelSize: 12; color: Theme.accentText }
+                                                MouseArea { id: closeMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.killWin(dragArea.modelData) }
+                                            }
                                         }
                                     }
                                 }
+                            }
+
+                            // desktop label (below the card)
+                            Row {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 7
+                                Text { text: "Desktop " + deskCol.ws; color: deskCol.isFocused ? Theme.accent : Theme.fgSecondary; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsBody; font.weight: Font.DemiBold }
+                                Text { visible: deskCol.isFocused; anchors.verticalCenter: parent.verticalCenter; text: "· current"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall }
                             }
                         }
                     }
                 }
             }
 
-            // floating layer the dragged card reparents into (so it isn't clipped by the Flickable)
+            // floating layer the dragged thumbnail reparents into (so it isn't clipped)
             Item { id: dragLayer; anchors.fill: parent; z: 2000 }
         }
     }
