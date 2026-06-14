@@ -41,9 +41,11 @@ cmd_up() {
   command -v qs >/dev/null       || die "qs (quickshell) not found"
 
   cat > "$WORK/hypr-min.conf" <<'EOF'
-# minimal compositor just to host the shell — no autostart, no keybinds
-monitor = WL-1, 1280x800@60, 0x0, 1
-monitor = , preferred, auto, 1
+# minimal compositor just to host the shell — no autostart, no keybinds.
+# The aquamarine Wayland-backend output is named WAYLAND-1; the wildcard rule
+# pins ANY output to a sane size so screenshots are consistent (without it the
+# nested output defaults to a tiny ~350x420 and panels render off-viewport).
+monitor = , 1280x800@60, 0x0, 1
 misc {
     disable_hyprland_logo = true
     disable_splash_rendering = true

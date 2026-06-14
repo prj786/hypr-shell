@@ -32,29 +32,49 @@ _helper_works() { command -v "$1" >/dev/null 2>&1 && "$1" --version >/dev/null 2
 
 _bootstrap_aur() {
     if _helper_works paru; then AUR_HELPER=paru; export AUR_HELPER; ok "AUR helper present (paru)"; return; fi
-    if _helper_works yay;  then AUR_HELPER=yay;  export AUR_HELPER; ok "AUR helper present (yay)";  return; fi
 
     info "bootstrapping paru (AUR helper, built from source)…"
     install_official base-devel git rust
-    if [ "${DRY_RUN:-0}" = "1" ]; then info "would (remove broken paru-bin then) build paru from source"; AUR_HELPER=paru; export AUR_HELPER; return; fi
+    if [ "${DRY_RUN:-0}" = "1" ]; then info "would build paru from source (as the invoking user) and pacman -U it"; AUR_HELPER=paru; export AUR_HELPER; return; fi
+
+    # makepkg refuses to run as root, but install.sh is commonly run with sudo.
+    # Build the package as the *invoking* user (SUDO_USER) and install the
+    # resulting .pkg with pacman -U as root — so `sudo ./install.sh` yields a
+    # working paru too (no more "no AUR helper" at the end).
+    local builder=""
     if [ "$(id -u)" = "0" ]; then
-        warn "running as root — makepkg refuses root. Build paru as your normal user, then re-run."
-        return
+        builder="${SUDO_USER:-}"
+        if [ -z "$builder" ] || [ "$builder" = "root" ]; then
+            warn "running as root with no SUDO_USER — can't build paru (makepkg refuses root)."
+            warn "Re-run as your normal user (the script elevates with sudo itself), or as 'sudo -u <you> ./install.sh'."
+            return
+        fi
+        info "building paru as user '$builder' (makepkg can't run as root)"
     fi
-    # A broken prebuilt paru-bin blocks both running AND installing source paru
-    # (file conflict on /usr/bin/paru) — remove it so we can rebuild.
+    local as_builder=""; [ -n "$builder" ] && as_builder="sudo -u $builder"
+
+    # A broken prebuilt paru-bin blocks installing source paru (file conflict on
+    # /usr/bin/paru) — remove it so we can replace it.
     if command -v paru >/dev/null 2>&1 && ! _helper_works paru; then
         warn "existing paru is broken (shared-library mismatch) — removing it to rebuild from source."
         pkg_present paru-bin && sudo_run pacman -Rdd --noconfirm paru-bin
         pkg_present paru     && sudo_run pacman -Rdd --noconfirm paru
     fi
-    # Build `paru` (source) — it links the CURRENTLY-installed libalpm, so it
-    # survives the soname bumps that break the prebuilt paru-bin package.
+
+    # Build `paru` (source — links the CURRENTLY-installed libalpm, so it survives
+    # the soname bumps that break prebuilt paru-bin) in a dir the builder owns,
+    # then install the artifact as root. `-s` resolves makedepends from the
+    # base-devel/git/rust we just installed, so it shouldn't need to fetch more.
     local t; t="$(mktemp -d)"
-    if git clone --depth 1 https://aur.archlinux.org/paru.git "$t" \
-       && ( cd "$t" && makepkg -si --noconfirm ); then
-        if _helper_works paru; then AUR_HELPER=paru; export AUR_HELPER; ok "paru installed (built from source)"
-        else warn "paru built but still not runnable — AUR packages will be skipped."; fi
+    [ -n "$builder" ] && chown "$builder" "$t"
+    if $as_builder git clone --depth 1 https://aur.archlinux.org/paru.git "$t/paru" \
+       && ( cd "$t/paru" && $as_builder makepkg -sf --noconfirm --noprogressbar ); then
+        local pkg; pkg="$(ls "$t"/paru/paru-*.pkg.tar.* 2>/dev/null | grep -v -- '-debug-' | head -1)"
+        if [ -n "$pkg" ] && sudo_run pacman -U --noconfirm "$pkg" && _helper_works paru; then
+            AUR_HELPER=paru; export AUR_HELPER; ok "paru installed (built from source)"
+        else
+            warn "paru built but could not be installed/run — AUR packages will be skipped."
+        fi
     else
         warn "paru bootstrap failed — AUR extras (gpu-screen-recorder) skipped. Non-critical: themes install from source regardless."
     fi

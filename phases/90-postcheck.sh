@@ -5,13 +5,17 @@
 
 # _check "<label>" <cmd...> — green tick on success, red cross on fail
 _check() { local label="$1"; shift; if "$@" >/dev/null 2>&1; then printf '  %s✓%s %s\n' "$C_G" "$C_0" "$label"; else printf '  %s✗%s %s\n' "$C_R" "$C_0" "$label"; fi; }
+# _note "<label>" — neutral, non-failing line (for things that are expected to be N/A)
+_note()  { printf '  %s•%s %s\n' "$C_DIM" "$C_0" "$1"; }
+# running under a VM/container? hardware GPU accel is expected to be absent there.
+_in_vm() { systemd-detect-virt -q 2>/dev/null; }
 
 phase_postcheck() {
     step "90 · verification"
     echo "  (✗ on session items is expected until you log into the Hyprland session)"
 
     _check "binaries: Hyprland + qs present"      sh -c 'command -v Hyprland && command -v qs'
-    _check "AUR helper present"                   sh -c 'command -v paru || command -v yay'
+    _check "AUR helper present (paru)"            sh -c 'command -v paru'
     _check "multilib repo enabled"                sh -c 'pacman-conf --repo-list | grep -qx multilib'
     _check "greeter: greetd + regreet + cage"     sh -c 'pacman -Qq greetd && pacman -Qq greetd-regreet && pacman -Qq cage'
     _check "greeter: Quickshell config installed"  test -r /etc/xdg/quickshell/hyprshell-greeter/shell.qml
@@ -25,8 +29,14 @@ phase_postcheck() {
     _check "portal: gtk backend active"           systemctl --user is-active xdg-desktop-portal-gtk.service
     _check "audio: a default sink exists"         sh -c 'wpctl status 2>/dev/null | grep -qi sink'
     _check "network: NetworkManager active"       systemctl is-active NetworkManager.service
-    _check "GPU: VAAPI entrypoint available"      sh -c 'vainfo 2>/dev/null | grep -q VAEntrypoint'
-    _check "GPU: a Vulkan device is visible"      sh -c 'vulkaninfo --summary 2>/dev/null | grep -qi deviceName'
+    # GPU hardware accel is expected to be unavailable in a VM (software rendering),
+    # so don't flag it red there — just note it.
+    if _in_vm; then
+        _note "GPU: hardware accel skipped (VM — software rendering)"
+    else
+        _check "GPU: VAAPI entrypoint available"      sh -c 'vainfo 2>/dev/null | grep -q VAEntrypoint'
+        _check "GPU: a Vulkan device is visible"      sh -c 'vulkaninfo --summary 2>/dev/null | grep -qi deviceName'
+    fi
     _check "screenshot: grim can capture"         sh -c 'grim - 2>/dev/null | head -c1 | grep -q .'
     _check "keyring agent running"                pgrep -f gnome-keyring-daemon
     _check "kb layout includes us,ge"             sh -c 'hyprctl getoption input:kb_layout 2>/dev/null | grep -q ge'

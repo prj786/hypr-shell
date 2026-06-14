@@ -7,10 +7,11 @@ import Quickshell.Io
 
 // AppStore — search + install/remove apps from the Arch official repos + the AUR.
 // Installs run in the BACKGROUND (no terminal): clicking an action opens a themed
-// sudo-password prompt, the password is piped to `sudo -S` over stdin (never put
+// sudo-password prompt, the password is handed to sudo via an ASKPASS file (never
 // on the command line), and a spinner shows on the button until it finishes.
-// If no AUR helper is present, an "Enable AUR" button builds paru from source the
-// same way. Themed from Theme.qml.
+// The AUR helper (paru) is installed by the setup script (phase 10); the store
+// just uses it when present, otherwise it searches the official repos only.
+// Themed from Theme.qml.
 Scope {
     id: root
     function g(c) { return String.fromCodePoint(c) }
@@ -19,13 +20,13 @@ Scope {
     property string query: ""
     property var results: []
     property var installed: ({})       // pkg name → true (from `pacman -Qq`)
-    property string helper: ""          // "paru" / "yay" / "" (= repo-only via pacman)
+    property string helper: ""          // "paru" or "" (= official repos only via pacman)
     property bool searching: false
     property bool searched: false       // a search has actually completed
 
     // ── one background operation at a time (gated by the single password prompt) ──
     property string busyId: ""          // pkg id currently being installed/removed ("" = idle)
-    property string busyKind: ""        // "install" | "remove" | "paru"
+    property string busyKind: ""        // "install" | "remove"
     property string opError: ""         // last failure message (shown as a banner)
     // pending op awaiting the password
     property string pendId: ""
@@ -40,22 +41,18 @@ Scope {
     }
     function cancelAsk() { root.pwOpen = false; root.pwText = ""; root.pendId = ""; root.pendKind = "" }
 
-    // The privileged part of each op. paru/makepkg are run as the normal user
-    // (they refuse root) and call `sudo` themselves; our own steps use sudo too.
-    // None of these read stdin — see wrap(): we hand sudo an ASKPASS helper, which
-    // it uses automatically because the process has no controlling terminal. That
-    // avoids the deadlock where a second sudo blocks forever on an empty stdin.
+    // The privileged part of each op. paru is run as the normal user (it refuses
+    // root) and calls `sudo` itself; our own steps use sudo too. None of these
+    // read stdin — see wrap(): we hand sudo an ASKPASS helper, which it uses
+    // automatically because the process has no controlling terminal. That avoids
+    // the deadlock where a second sudo blocks forever on an empty stdin.
     function opBody(kind, id) {
         if (kind === "install")
             return root.helper
                 ? root.helper + " -S --noconfirm --skipreview --needed -- " + root.sq(id)
                 : "sudo -A pacman -S --noconfirm --needed -- " + root.sq(id)
-        if (kind === "remove")
-            return "sudo -A pacman -Rns --noconfirm -- " + root.sq(id)
-        // kind === "paru": build the AUR helper from source (links current libalpm)
-        return "sudo -A pacman -S --needed --noconfirm base-devel git rust && "
-             + "bd=$(mktemp -d) && git clone --depth 1 https://aur.archlinux.org/paru.git \"$bd\" && "
-             + "( cd \"$bd\" && makepkg -si --noconfirm ); st=$?; rm -rf \"$bd\"; exit $st"
+        // kind === "remove"
+        return "sudo -A pacman -Rns --noconfirm -- " + root.sq(id)
     }
     // wrap a body: read the password (one line on stdin), drop it into a 0700
     // ASKPASS helper under XDG_RUNTIME_DIR (tmpfs, user-only), export SUDO_ASKPASS
@@ -81,7 +78,7 @@ Scope {
     function confirmAsk() {
         if (root.pwText.length === 0 || root.busyId !== "") return
         root.busyKind = root.pendKind
-        root.busyId = (root.pendKind === "paru") ? "paru" : root.pendId
+        root.busyId = root.pendId
         root.opError = ""
         opProc.command = ["sh", "-c", root.opCommand(root.pendKind, root.pendId)]
         opProc.running = false; opProc.running = true
@@ -92,7 +89,7 @@ Scope {
         var q = root.query.trim()
         if (q.length < 2) { root.results = []; root.searching = false; root.searched = false; return }
         root.searching = true
-        var tool = root.helper ? root.helper : "pacman"   // paru/yay also searches the AUR
+        var tool = root.helper ? root.helper : "pacman"   // paru also searches the AUR
         searchProc.command = ["sh", "-c", tool + ' -Ss --color=never -- "$1" 2>/dev/null | head -80', "sh", q]
         searchProc.running = false; searchProc.running = true
     }
@@ -119,7 +116,7 @@ Scope {
     // which AUR helper is available?
     Process {
         id: helperProc
-        command: ["sh", "-c", "command -v paru || command -v yay || true"]
+        command: ["sh", "-c", "command -v paru || true"]
         stdout: StdioCollector { onStreamFinished: { var p = this.text.trim(); root.helper = p ? p.split("/").pop() : "" } }
     }
     // installed-package set (so badges/buttons reflect reality after actions)
@@ -149,7 +146,7 @@ Scope {
         }
     }
 
-    // ── the background install/remove/build process ──
+    // ── the background install/remove process ──
     Process {
         id: opProc
         stdinEnabled: true
@@ -159,7 +156,7 @@ Scope {
             if (code === 0) { root.opError = "" }
             else {
                 var e = (opErr.text || "").trim().split("\n").filter(function (l) { return l.trim().length }).pop()
-                root.opError = (root.busyKind === "paru" ? "Couldn't build paru. " : "Operation failed. ")
+                root.opError = "Operation failed. "
                              + (e && e.length ? e : ("exit code " + code + " — wrong password?"))
             }
             root.busyId = ""; root.busyKind = ""
@@ -216,36 +213,16 @@ Scope {
             Column {
                 anchors.fill: parent; anchors.margins: 14; spacing: 12
 
-                // ── header: title (left) + AUR status / Enable-AUR (right) ──
+                // ── header: title (left) + AUR status (right) ──
                 Item {
                     width: parent.width; height: 26
                     Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "App Store"; color: Theme.fg; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsLarge; font.weight: Font.Bold }
 
-                    // AUR present → quiet "AUR ✓" tag
-                    Text {
-                        visible: root.helper !== "" && root.busyKind !== "paru"
-                        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                        text: "AUR · " + root.helper; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10
-                    }
-                    // building paru → progress tag
+                    // AUR helper (paru) is provided by setup — just reflect its presence.
                     Row {
-                        visible: root.busyKind === "paru"
                         anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; spacing: 6
-                        Spinner { width: 13; height: 13; anchors.verticalCenter: parent.verticalCenter }
-                        Text { anchors.verticalCenter: parent.verticalCenter; text: "Building paru…"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10 }
-                    }
-                    // no AUR helper → one-click Enable AUR (builds paru in the background)
-                    Rectangle {
-                        visible: root.helper === "" && root.busyKind !== "paru"
-                        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                        width: eaRow.implicitWidth + 18; height: 24; radius: 7
-                        color: eaMa.containsMouse ? Theme.accent : Theme.elevated
-                        Behavior on color { ColorAnimation { duration: 120 } }
-                        Row { id: eaRow; anchors.centerIn: parent; spacing: 6
-                            Text { anchors.verticalCenter: parent.verticalCenter; text: root.g(0xF01DA); font.family: Theme.fontMono; font.pixelSize: 12; color: eaMa.containsMouse ? Theme.accentText : Theme.accent }
-                            Text { anchors.verticalCenter: parent.verticalCenter; text: "Enable AUR"; color: eaMa.containsMouse ? Theme.accentText : Theme.fg; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold }
-                        }
-                        MouseArea { id: eaMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.ask("paru", "paru") }
+                        Text { anchors.verticalCenter: parent.verticalCenter; text: root.g(root.helper !== "" ? 0xF012C : 0xF0159); font.family: Theme.fontMono; font.pixelSize: 12; color: root.helper !== "" ? Theme.accent : Theme.fgDim }
+                        Text { anchors.verticalCenter: parent.verticalCenter; text: root.helper !== "" ? ("AUR · " + root.helper) : "Official repos only"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10 }
                     }
                 }
 
@@ -269,7 +246,7 @@ Scope {
                         Text { anchors.verticalCenter: parent.verticalCenter; visible: storeIn.text.length === 0; text: "Search apps to install or remove…"; color: Theme.fgDim; font: storeIn.font }
                     }
                 }
-                Text { width: parent.width; wrapMode: Text.WordWrap; text: (root.helper ? "Searches the official repos + AUR as you type." : "Searches the official repos as you type — enable AUR for the rest.") + " Installs run in the background."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10 }
+                Text { width: parent.width; wrapMode: Text.WordWrap; text: (root.helper ? "Searches the official repos + AUR as you type." : "Searches the official repos as you type.") + " Installs run in the background."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10 }
 
                 // ── error banner ──
                 Rectangle {
@@ -293,7 +270,7 @@ Scope {
                         Text {
                             width: parent.width
                             visible: !root.searching && root.searched && root.results.length === 0 && root.query.trim().length >= 2
-                            text: root.helper === "" ? "No results in the official repos. Many apps (e.g. Chrome) are AUR-only — click “Enable AUR”."
+                            text: root.helper === "" ? "No results in the official repos. Many apps (e.g. Chrome) are AUR-only — re-run setup to enable the AUR."
                                                       : "No results."
                             wrapMode: Text.WordWrap
                             color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall
@@ -363,8 +340,7 @@ Scope {
                         anchors.margins: 18; spacing: 12
                         Text { text: "Administrator password"; color: Theme.fg; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsBody; font.weight: Font.Bold }
                         Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11
-                            text: root.pendKind === "paru" ? "Build the paru AUR helper from source."
-                                : (root.pendKind === "remove" ? "Remove " : "Install ") + (root.pendId || "") + (root.pendKind === "install" && root.helper ? "  (repos + AUR)" : "") }
+                            text: (root.pendKind === "remove" ? "Remove " : "Install ") + (root.pendId || "") + (root.pendKind === "install" && root.helper ? "  (repos + AUR)" : "") }
                         Rectangle {
                             width: parent.width; height: 38; radius: Theme.radiusInner
                             color: Theme.bg; border.color: pwIn.activeFocus ? Theme.accent : Theme.stroke; border.width: 1
@@ -386,7 +362,7 @@ Scope {
                                 MouseArea { id: clMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.cancelAsk() } }
                             Rectangle { width: ol.implicitWidth + 22; height: 30; radius: 8; opacity: root.pwText.length ? 1 : 0.4
                                 color: Theme.accent
-                                Text { id: ol; anchors.centerIn: parent; text: root.pendKind === "remove" ? "Remove" : (root.pendKind === "paru" ? "Build" : "Install"); color: Theme.accentText; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                Text { id: ol; anchors.centerIn: parent; text: root.pendKind === "remove" ? "Remove" : "Install"; color: Theme.accentText; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold }
                                 MouseArea { id: okMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { if (root.pwText.length) root.confirmAsk() } } }
                         }
                     }

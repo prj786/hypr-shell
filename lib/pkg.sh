@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # lib/pkg.sh — Arch package handling: official repos via pacman, AUR via the
-# helper bootstrapped in phase 10 (paru/yay). No name mapping needed — the lists
+# helper bootstrapped in phase 10 (paru). No name mapping needed — the lists
 # carry real Arch package names.
 
 # read_list <file> — echo package names (strip # comments, inline comments, blanks)
