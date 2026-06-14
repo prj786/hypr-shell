@@ -36,6 +36,9 @@ die()  { echo "driver: $*" >&2; exit 1; }
 load() { [ -f "$STATE" ] && . "$STATE" || die "not up — run 'driver.sh up' first"; }
 
 cmd_up() {
+  # tear down any prior instance first — `up` is idempotent and never leaks an
+  # orphaned nested compositor (the state file only tracks the most recent one).
+  [ -f "$STATE" ] && cmd_down >/dev/null 2>&1
   [ -n "${WAYLAND_DISPLAY:-}" ] || die "no host WAYLAND_DISPLAY — need a parent Wayland session to nest into"
   command -v Hyprland >/dev/null || die "Hyprland not found"
   command -v qs >/dev/null       || die "qs (quickshell) not found"
