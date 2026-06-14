@@ -10,15 +10,27 @@ phase_userconfig() {
             [ -r "/usr/share/applications/$b" ] && { run xdg-settings set default-web-browser "$b" && break; }
         done
     fi
-    # KDE/Qt utility apps as defaults (themed, titlebar-less). _mime <desktop> <mimes…>
+    # Install our Fresh launcher (runs `fresh` inside kitty) so it can be the GUI
+    # default text/code editor. Shipped in the repo; copied to the user apps dir.
+    if [ -r "$DOTREPO/system/applications/fresh.desktop" ]; then
+        run mkdir -p "$HOME/.local/share/applications"
+        run cp -f "$DOTREPO/system/applications/fresh.desktop" "$HOME/.local/share/applications/fresh.desktop"
+        run update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+    fi
+
+    # Default apps. _mime <desktop> <mimes…> (looks in both system + user app dirs).
     _mime() {
         local d="$1"; shift
-        [ -r "/usr/share/applications/$d" ] || return 0
+        [ -r "/usr/share/applications/$d" ] || [ -r "$HOME/.local/share/applications/$d" ] || return 0
         local m; for m in "$@"; do run xdg-mime default "$d" "$m"; done
     }
     if command -v xdg-mime >/dev/null 2>&1; then
         _mime org.kde.dolphin.desktop  inode/directory
-        _mime org.kde.kate.desktop     text/plain
+        # Fresh IDE is the default text + code editor (GUI fallback: kate).
+        _mime fresh.desktop text/plain text/markdown text/html text/css text/javascript \
+              application/json application/javascript application/xml text/xml application/x-yaml \
+              text/x-python text/x-csrc text/x-chdr text/x-c++src application/x-shellscript \
+              text/x-rust text/x-go
         _mime org.kde.gwenview.desktop image/png image/jpeg image/gif image/webp image/bmp image/tiff
         _mime org.kde.okular.desktop   application/pdf application/epub+zip
         _mime mpv.desktop              video/mp4 video/x-matroska video/webm video/quicktime audio/mpeg audio/flac
@@ -39,9 +51,33 @@ phase_userconfig() {
     # EDITOR/VISUAL for the user shell (idempotent: only append once)
     local rc="$HOME/.profile"
     if [ -w "$rc" ] || [ ! -e "$rc" ]; then
-        if ! grep -q 'EDITOR=nvim' "$rc" 2>/dev/null; then
-            run sh -c "printf '\n# hyprdots: default editor\nexport EDITOR=nvim VISUAL=nvim\n' >> '$rc'"
+        if ! grep -q 'hypr-shell: default editor' "$rc" 2>/dev/null; then
+            run sh -c "printf '\n# hypr-shell: default editor\nexport EDITOR=fresh VISUAL=fresh\n' >> '$rc'"
         fi
+    fi
+
+    # ── Node toolchain via mise (no system nodejs) ──
+    # mise owns Node here. Provision Node LTS + pnpm + the front-end language
+    # servers/formatter declared in dotfiles/mise/config.toml, and wire mise into
+    # the shells. The shims dir is also added to PATH by start-hyprland.sh so
+    # GUI-launched Fresh finds the servers without an interactive shell.
+    if command -v mise >/dev/null 2>&1; then
+        run mise trust "$HOME/.config/mise/config.toml" 2>/dev/null || true
+        if [ "${DRY_RUN:-0}" = "1" ]; then
+            info "would run 'mise install' (node LTS, pnpm, TS/CSS/HTML/JSON/Tailwind/Vue/Svelte servers, prettier)"
+        else
+            info "provisioning Node toolchain via mise (this builds/downloads node + npm tools)…"
+            run mise install || warn "mise install reported errors — run 'mise install' again after login."
+        fi
+        # activate mise in interactive shells (shims also live on PATH via the session wrapper)
+        for rcf in "$HOME/.bashrc" "$HOME/.zshrc"; do
+            [ -e "$rcf" ] || continue
+            local sh_name; sh_name="$(basename "$rcf" | sed 's/^\.//; s/rc$//')"   # bashrc→bash, zshrc→zsh
+            grep -q 'mise activate' "$rcf" 2>/dev/null || \
+                run sh -c "printf '\n# hypr-shell: mise (node toolchain)\neval \"\$(mise activate %s)\"\n' '$sh_name' >> '$rcf'"
+        done
+    else
+        warn "mise not installed — Node toolchain not provisioned (install mise, then 'mise install')."
     fi
 
     # zram (laptop benefit). Ship a sane generator config if none exists.

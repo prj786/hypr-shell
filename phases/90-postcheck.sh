@@ -41,6 +41,10 @@ phase_postcheck() {
     _check "keyring agent running"                pgrep -f gnome-keyring-daemon
     _check "kb layout includes us,ge"             sh -c 'hyprctl getoption input:kb_layout 2>/dev/null | grep -q ge'
     _check "gaming: gamemode + steam installed"   sh -c 'pacman -Qq gamemode && pacman -Qq steam'
+    _check "editor: Fresh (fresh) on PATH"        sh -c 'command -v fresh'
+    _check "terminal: kitty installed"            sh -c 'command -v kitty'
+    _check "dev: node via mise shims"             sh -c 'command -v mise && [ -x "$HOME/.local/share/mise/shims/node" ]'
+    _check "dev: TypeScript language server"      sh -c '[ -x "$HOME/.local/share/mise/shims/typescript-language-server" ] || command -v typescript-language-server'
 
     echo
     info "manual: Firefox → about:support → Compositing = 'WebRender'; play a video and watch \`intel_gpu_top\` Video engine."

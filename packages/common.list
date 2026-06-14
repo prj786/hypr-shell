@@ -44,9 +44,11 @@ bluez-utils
 blueman
 power-profiles-daemon
 
-# ── terminals ────────────────────────────────────────────────────────────────
-foot
-ghostty
+# ── terminal (single, fast, GPU-accelerated) + multiplexer ───────────────────
+# kitty is the one terminal (foot/ghostty dropped). It auto-attaches a themed
+# tmux session — see dotfiles/kitty/kitty.conf + dotfiles/tmux/tmux.conf.
+kitty
+tmux
 
 # ── file manager + utility apps = Qt/KDE (no client-side titlebar; themed to
 #    match the shell via kdeglobals + qt6ct). GTK is kept for browsers/3rd-party
@@ -72,10 +74,10 @@ udisks2
 unzip
 p7zip
 
-# ── browser / editors (GTK / terminal — kept for 3rd-party app parity) ─────────
+# ── browser + GUI editor ──────────────────────────────────────────────────────
+# Terminal IDE is Fresh (AUR: fresh-editor, see aur.list) — the default editor.
+# neovim/vim dropped. kate (above) stays as a GUI editor fallback.
 firefox
-neovim
-vim
 
 # ── desktop utilities ────────────────────────────────────────────────────────
 swaybg
@@ -108,11 +110,19 @@ ttf-nerd-fonts-symbols-mono
 inter-font
 
 # ── dev tooling ──────────────────────────────────────────────────────────────
-git
-git-delta
-lazygit
-mise
-podman
+# Front-end focused. Node/npm/pnpm + the language servers are NOT pacman packages
+# here — mise owns the Node toolchain (dotfiles/mise/config.toml provisions
+# node LTS, pnpm and the LSP/formatter binaries; phase 60 runs `mise install`).
+git                     # pre-installed VCS (also used by the AUR bootstrap)
+git-delta               # nicer git diffs
+lazygit                 # TUI git client
+gh                      # GitHub CLI
+mise                    # polyglot runtime/version manager — owns Node here
+ripgrep                 # fast search (rg)
+fd                      # fast file find
+fzf                     # fuzzy finder
+bat                     # syntax-highlighting pager
+podman                  # rootless containers
 
 # ── gaming (needs multilib — phase 10 enables it) ────────────────────────────
 steam

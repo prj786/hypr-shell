@@ -1,0 +1,23 @@
+# mise global config — managed by hypr-shell.
+# mise OWNS the Node toolchain (no system nodejs package). `mise install`
+# (run by phase 60) provisions Node LTS, pnpm, and the front-end language
+# servers + formatter as npm-backed tools. Their shims live in
+# ~/.local/share/mise/shims, which start-hyprland.sh puts on PATH so Fresh
+# (and anything launched from the session) finds them automatically.
+[tools]
+node = "lts"
+"npm:pnpm" = "latest"
+
+# front-end language servers (Fresh auto-detects servers on PATH)
+"npm:typescript" = "latest"                      # tsserver / tsc
+"npm:typescript-language-server" = "latest"      # TS + JS
+"npm:vscode-langservers-extracted" = "latest"    # HTML, CSS, JSON, ESLint
+"npm:@tailwindcss/language-server" = "latest"    # Tailwind CSS
+"npm:@vue/language-server" = "latest"            # Vue
+"npm:svelte-language-server" = "latest"          # Svelte
+"npm:prettier" = "latest"                        # formatter (used by Fresh)
+
+[settings]
+# auto-install missing tool versions when entering a project (e.g. a repo that
+# pins a different node), and keep idle-time low.
+not_found_auto_install = true

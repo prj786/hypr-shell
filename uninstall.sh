@@ -25,6 +25,15 @@ restore() {
 step "uninstall"
 restore "$HOME/.config/hypr"
 restore "$HOME/.config/quickshell"
+restore "$HOME/.config/fresh"
+restore "$HOME/.config/kitty"
+restore "$HOME/.config/tmux"
+restore "$HOME/.config/mise"
+
+# the Fresh launcher we copied into the user apps dir
+if [ -e "$HOME/.local/share/applications/fresh.desktop" ]; then
+    run rm -f "$HOME/.local/share/applications/fresh.desktop"; ok "removed fresh.desktop"
+fi
 
 if [ -e "$HOME/.config/systemd/user/hyprland-session.target" ]; then
     run rm -f "$HOME/.config/systemd/user/hyprland-session.target"

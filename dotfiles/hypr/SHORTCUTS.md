@@ -8,7 +8,7 @@ on save). Ported from the old Qtile bindings so most muscle memory carries over.
 
 | Shortcut | Action | Program |
 |---|---|---|
-| `Super` + `Return` | Terminal | `foot` |
+| `Super` + `Return` | Terminal (auto-attaches themed tmux) | `kitty` |
 | `Super` + `Space` | **Spotlight** search (press again to close) | Quickshell |
 | `Super` + `D` | App launcher (same Spotlight) | Quickshell |
 | `Super` + `E` | File manager | `dolphin` |

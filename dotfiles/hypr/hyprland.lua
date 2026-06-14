@@ -15,7 +15,7 @@ local home     = os.getenv("HOME")
 local scripts  = home .. "/.config/hypr/scripts"
 
 -- Core programs (mirror the old settings.py defaults) ------------------------
-local terminal    = "foot"
+local terminal    = "kitty"
 local fileManager = "dolphin"
 local browser     = "firefox"
 local spotlight   = "qs ipc call spotlight toggle"  -- Quickshell launcher (QML)

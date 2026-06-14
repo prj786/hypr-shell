@@ -752,7 +752,7 @@ Scope {
                     Item {
                         width: parent.width; height: 20
                         SectionTitle { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "SSH HOSTS" }
-                        Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: "Edit config"; color: Theme.accent; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; font.weight: Font.DemiBold; MouseArea { anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor; onClicked: Quickshell.execDetached(["foot", "-e", "sh", "-c", "${EDITOR:-nvim} ~/.ssh/config"]) } }
+                        Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: "Edit config"; color: Theme.accent; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; font.weight: Font.DemiBold; MouseArea { anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor; onClicked: Quickshell.execDetached(["kitty", "-e", "sh", "-c", "${EDITOR:-fresh} ~/.ssh/config"]) } }
                     }
                     Card {
                         Text { width: parent.width; visible: root.sshHosts.length === 0; text: "No hosts in ~/.ssh/config. Add one with “Edit config”."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; wrapMode: Text.Wrap }
@@ -765,7 +765,7 @@ Scope {
                                 Text { anchors.left: parent.left; anchors.leftMargin: 4; anchors.verticalCenter: parent.verticalCenter; text: root.g(0xF08C0); font.family: Theme.fontMono; font.pixelSize: 12; color: Theme.fgDim }
                                 Text { anchors.left: parent.left; anchors.leftMargin: 26; anchors.verticalCenter: parent.verticalCenter; text: modelData; color: Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall }
                                 Text { anchors.right: parent.right; anchors.rightMargin: 6; anchors.verticalCenter: parent.verticalCenter; visible: sMa.containsMouse; text: "connect →"; color: Theme.accent; font.family: Theme.fontText; font.pixelSize: 11 }
-                                MouseArea { id: sMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Quickshell.execDetached(["foot", "-e", "ssh", modelData]) }
+                                MouseArea { id: sMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Quickshell.execDetached(["kitty", "-e", "ssh", modelData]) }
                             }
                         }
                     }

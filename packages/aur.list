@@ -6,3 +6,4 @@
 # end-to-end by the Quickshell Settings app (scripts/colorscheme.sh writes the
 # GTK/Qt/KDE config). One place to manage everything — no extra app.
 gpu-screen-recorder        # GPU-encoded screen capture + replay buffer (VAAPI/NVENC)
+fresh-editor               # Fresh — terminal IDE (default editor); single static binary, built-in LSP

@@ -38,6 +38,15 @@ export _JAVA_AWT_WM_NONREPARENTING=1
 # live in ~/.local/bin — make sure the session and its children can find them.
 case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
 
+# mise shims — Node/pnpm + the language servers Fresh uses are mise-managed (no
+# system nodejs). The shims are static executables, so putting them on PATH here
+# makes them resolve for GUI-launched apps (Fresh, opened from the editor or a
+# file association) without needing an interactive shell's `mise activate`.
+case ":$PATH:" in *":$HOME/.local/share/mise/shims:"*) ;; *) export PATH="$HOME/.local/share/mise/shims:$PATH" ;; esac
+
+# Default editor for the whole session (Fresh, terminal IDE).
+export EDITOR=fresh VISUAL=fresh
+
 # GPU escape hatch: if the Arc 140V (xe) driver ever tears/hangs/corrupts, log
 # in once with DE_SOFTWARE_RENDER=1 in your environment to fall back to Mesa
 # software rendering. (The cursor-plane bug is already handled in hyprland.lua
