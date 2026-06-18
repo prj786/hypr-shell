@@ -79,10 +79,13 @@ toolkit by `dotfiles/quickshell/scripts/colorscheme.sh` and toggled live in
 **Settings → Theme → App appearance** (defaults to dark):
 
 - **GTK** — gsettings + `gtk-3.0/4.0/settings.ini` (adw-gtk3[-dark]).
-- **Qt** — qt6ct/qt5ct, Breeze style + a Fusion palette fallback.
-- **KDE/KF6** — a full `kdeglobals` colour scheme (Breeze `widgetStyle`); the
-  `breeze` package supplies the style so Dolphin/Kate/etc. theme completely
-  (including the file-view background) without Plasma.
+- **Qt / KDE** — qt6ct/qt5ct provide a dark custom palette and the **Fusion**
+  style (`QT_STYLE_OVERRIDE=Fusion`). Fusion is built into Qt and honours the
+  palette directly, so Dolphin/Kate/Gwenview/etc. theme completely — **including
+  the file-view background** — with no Plasma packages. (Breeze is intentionally
+  *not* used: outside a Plasma session it ignores the palette and renders light,
+  which would require pulling in `plasma-integration` — a second theming stack.)
+  A full `kdeglobals` colour scheme is still written for KColorScheme-aware apps.
 - **Icons** — **Reversal**, auto-matched to the accent by hue (`Reversal-<colour>[-dark]`).
 - **Cursor** — **Mocu** (`mocu-xcursor`), forced via `XCURSOR_THEME`,
   `~/.icons/default`, GTK, gsettings, qt6ct and kdeglobals so it never flips

@@ -3,7 +3,7 @@
 # tinted with the shell accent, UNIFORMLY across the whole app ecosystem:
 #   • GTK 3/4 + libadwaita   (settings.ini + gsettings)
 #   • Qt 5/6                 (qt6ct/qt5ct, Breeze style + Fusion-palette fallback)
-#   • KDE / KF6              (kdeglobals: Breeze widgetStyle + full colour scheme)
+#   • KDE / KF6              (kdeglobals: Fusion widgetStyle + full colour scheme)
 #   • Icon theme             (Reversal, accent-matched colour variant)
 #   • Cursor                 (Mocu, forced everywhere so it never flips per-toolkit)
 #
@@ -89,7 +89,12 @@ if command -v gsettings >/dev/null 2>&1; then
     gsettings set org.gnome.desktop.interface cursor-size  "$CURSOR_SIZE" 2>/dev/null || true
 fi
 
-# ── Qt (qt6ct + qt5ct) — Breeze style (reads kdeglobals) + Fusion palette fallback ──
+# ── Qt (qt6ct + qt5ct) — Fusion style driven by qt6ct's custom dark palette ──
+# Fusion (built into Qt, no extra package) honours the QPalette directly, so the
+# dark custom_palette below colours every widget INCLUDING item views (the file
+# pane). Breeze was deliberately dropped here: outside a Plasma session it has its
+# own colour engine that ignores qt6ct's palette and falls back to light, which
+# needs plasma-integration (a whole extra theming stack) to fix. Fusion needs none.
 COLORS="$CFG/qt6ct/colors"
 mkdir -p "$COLORS"
 cat > "$COLORS/hyprshell-dark.conf" <<EOF
@@ -113,14 +118,15 @@ custom_palette=true
 color_scheme_path=$SCHEME
 icon_theme=$ICONS
 standard_dialogs=default
-style=Breeze
+style=Fusion
 EOF
 done
 
 # ── KDE / KF6 (Dolphin, Ark, Gwenview, Okular, Kate) — kdeglobals ──
-# Breeze widgetStyle reads these [Colors:*] groups directly (incl. View, which
-# is the Dolphin file-pane background that was staying light). Full key set so
-# nothing falls back to a light default. Accent = Selection + Decoration*.
+# KColorScheme-aware KDE apps read these [Colors:*] groups (incl. View, the
+# Dolphin file-pane). With the Fusion style the QPalette already carries the dark
+# colours, so this is belt-and-suspenders; still written in full so nothing falls
+# back to a light default. Accent = Selection + Decoration*.
 if [ "$MODE" = "dark" ]; then
     C_WIN="42,42,42";  C_WINA="36,36,36";  C_VIEW="30,30,30";  C_VIEWA="36,36,36"
     C_BTN="45,45,45";  C_FG="220,220,220";  C_FGI="130,130,130"; C_TIP="45,45,45"
@@ -149,7 +155,7 @@ EOF
 }
 {
     echo "[General]";  echo "ColorScheme=HyprShell"; echo
-    echo "[KDE]";      echo "widgetStyle=Breeze";    echo
+    echo "[KDE]";      echo "widgetStyle=Fusion";    echo
     echo "[Icons]";    echo "Theme=$ICONS";          echo
     echo "[Colors:Window]";        _cgroup "$C_WIN"  "$C_WINA";  echo
     echo "[Colors:View]";          _cgroup "$C_VIEW" "$C_VIEWA"; echo

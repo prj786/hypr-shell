@@ -22,12 +22,13 @@ export DESKTOP_SESSION=hyprland
 #    Keep in sync with scripts/colorscheme.sh (writes the qt6ct.conf + kdeglobals
 #    these point at) and ~/.icons/default (cursor inheritance).
 export QT_QPA_PLATFORM="wayland;xcb"
-export QT_QPA_PLATFORMTHEME=qt6ct          # qt6ct → palette + icon theme from qt6ct.conf
-# Force the Breeze widget style directly (breeze6.so), independent of whether
-# qt6ct.conf's style= is honoured. Breeze reads the colours from ~/.config/
-# kdeglobals — which colorscheme.sh writes dark — so KDE/Qt apps (Dolphin, Kate,
-# Gwenview…) follow the shell's dark scheme instead of Breeze's light default.
-export QT_STYLE_OVERRIDE=Breeze
+export QT_QPA_PLATFORMTHEME=qt6ct          # qt6ct → dark palette + icon theme from qt6ct.conf
+# Force the Fusion widget style for ALL Qt apps. Fusion (built into Qt — no extra
+# package) honours qt6ct's QPalette directly, so KDE/Qt apps (Dolphin, Kate,
+# Gwenview…) go fully dark INCLUDING item views. Breeze was dropped: outside a
+# Plasma session its own colour engine ignores the palette and renders light,
+# which would need plasma-integration (a second theming stack) to fix.
+export QT_STYLE_OVERRIDE=Fusion
 export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 export QT_AUTO_SCREEN_SCALE_FACTOR=1
 export XCURSOR_THEME=Mocu-White-Right      # one cursor everywhere (XWayland + every toolkit)

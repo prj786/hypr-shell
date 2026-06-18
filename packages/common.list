@@ -95,9 +95,8 @@ socat
 # ── theming (GTK + Qt unified) + fonts ───────────────────────────────────────
 adw-gtk-theme
 gnome-themes-extra
-qt6ct
+qt6ct                   # Qt platform theme — supplies the dark palette + Fusion style
 kvantum
-breeze                  # Qt Breeze style — KDE/Qt apps read kdeglobals colours from it
 papirus-icon-theme      # fallback icon set (Reversal inherits/falls back to it)
 librsvg                  # rsvg-convert — builds the Mocu cursor (phase 20 source step)
 xorg-xcursorgen          # xcursorgen — builds the Mocu cursor
