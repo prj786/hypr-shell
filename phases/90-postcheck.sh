@@ -37,7 +37,14 @@ phase_postcheck() {
         _check "GPU: VAAPI entrypoint available"      sh -c 'vainfo 2>/dev/null | grep -q VAEntrypoint'
         _check "GPU: a Vulkan device is visible"      sh -c 'vulkaninfo --summary 2>/dev/null | grep -qi deviceName'
     fi
-    _check "screenshot: grim can capture"         sh -c 'grim - 2>/dev/null | head -c1 | grep -q .'
+    # grim uses wlr-screencopy, which is unreliable on a VM's software-rendered
+    # virtio-gpu (the capture can come back empty). Real check on hardware; in a
+    # VM it's a neutral note, not a red ✗ — screenshots work fine on real GPUs.
+    if _in_vm; then
+        _note "screenshot: grim (screencopy unreliable under VM software rendering)"
+    else
+        _check "screenshot: grim can capture"         sh -c 'grim - 2>/dev/null | head -c1 | grep -q .'
+    fi
     _check "keyring agent running"                pgrep -f gnome-keyring-daemon
     _check "kb layout includes us,ge"             sh -c 'hyprctl getoption input:kb_layout 2>/dev/null | grep -q ge'
     _check "gaming: gamemode + steam installed"   sh -c 'pacman -Qq gamemode && pacman -Qq steam'
