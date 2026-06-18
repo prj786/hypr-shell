@@ -79,13 +79,15 @@ toolkit by `dotfiles/quickshell/scripts/colorscheme.sh` and toggled live in
 **Settings → Theme → App appearance** (defaults to dark):
 
 - **GTK** — gsettings + `gtk-3.0/4.0/settings.ini` (adw-gtk3[-dark]).
-- **Qt / KDE** — qt6ct/qt5ct provide a dark custom palette and the **Fusion**
-  style (`QT_STYLE_OVERRIDE=Fusion`). Fusion is built into Qt and honours the
-  palette directly, so Dolphin/Kate/Gwenview/etc. theme completely — **including
-  the file-view background** — with no Plasma packages. (Breeze is intentionally
-  *not* used: outside a Plasma session it ignores the palette and renders light,
-  which would require pulling in `plasma-integration` — a second theming stack.)
-  A full `kdeglobals` colour scheme is still written for KColorScheme-aware apps.
+- **Qt / KDE** — the **`kde` platform theme** (`plasma-integration`,
+  `QT_QPA_PLATFORMTHEME=kde`) reads the full `kdeglobals` colour scheme we write
+  and applies our dark colours **and accent** to every KDE/Qt app — *including*
+  the item views (Dolphin/Ark file panes) that no env/style trick can reach,
+  because KDE apps colour those via `KColorScheme`. Widget style is **Fusion**.
+  `plasma-integration` pulls only KF6 libraries (mostly already present via the
+  KDE apps) — **no** `plasmashell`/`kwin`/`plasma-desktop`. qt6ct stays as a
+  fallback palette. Changing the accent rewrites `kdeglobals` and recolours
+  running KDE apps live (plasma-integration watches the file).
 - **Icons** — **Reversal**, auto-matched to the accent by hue (`Reversal-<colour>[-dark]`).
 - **Cursor** — **Mocu** (`mocu-xcursor`), forced via `XCURSOR_THEME`,
   `~/.icons/default`, GTK, gsettings, qt6ct and kdeglobals so it never flips

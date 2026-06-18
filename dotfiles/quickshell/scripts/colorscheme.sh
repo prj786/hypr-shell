@@ -89,12 +89,12 @@ if command -v gsettings >/dev/null 2>&1; then
     gsettings set org.gnome.desktop.interface cursor-size  "$CURSOR_SIZE" 2>/dev/null || true
 fi
 
-# ── Qt (qt6ct + qt5ct) — Fusion style driven by qt6ct's custom dark palette ──
-# Fusion (built into Qt, no extra package) honours the QPalette directly, so the
-# dark custom_palette below colours every widget INCLUDING item views (the file
-# pane). Breeze was deliberately dropped here: outside a Plasma session it has its
-# own colour engine that ignores qt6ct's palette and falls back to light, which
-# needs plasma-integration (a whole extra theming stack) to fix. Fusion needs none.
+# ── Qt (qt6ct + qt5ct) — fallback palette when the kde platform theme is absent ──
+# Primary Qt/KDE theming is the "kde" platform theme (plasma-integration,
+# QT_QPA_PLATFORMTHEME=kde in start-hyprland.sh): it reads the kdeglobals written
+# below and applies our colours to EVERY app incl. KColorScheme item views (the
+# Dolphin/Ark file panes). qt6ct's custom dark palette here is just a fallback for
+# when plasma-integration isn't installed. Style is Fusion (set in kdeglobals).
 COLORS="$CFG/qt6ct/colors"
 mkdir -p "$COLORS"
 cat > "$COLORS/hyprshell-dark.conf" <<EOF
@@ -170,5 +170,13 @@ EOF
     echo "ForegroundNeutral=255,255,255"; echo "ForegroundPositive=255,255,255"
     echo "DecorationFocus=$A"; echo "DecorationHover=$A"
 } > "$CFG/kdeglobals"
+
+# ── live update: nudge already-running KDE apps to re-read kdeglobals ──
+# plasma-integration file-watches kdeglobals, so a colour/accent change usually
+# recolours running KDE apps on its own; this legacy KGlobalSettings signal is a
+# best-effort extra for apps that listen for it. Harmless if nothing receives it.
+if command -v dbus-send >/dev/null 2>&1; then
+    dbus-send --session --type=signal /KGlobalSettings org.kde.KGlobalSettings.notifyChange int32 0 int32 0 2>/dev/null || true
+fi
 
 exit 0

@@ -12,23 +12,20 @@ export DESKTOP_SESSION=hyprland
 
 # ── Toolkit theming env — MUST be exported HERE, before `exec Hyprland`, not only
 #    via hl.env() in hyprland.lua. hl.env applies to Hyprland's children, but its
-#    propagation is unreliable for apps launched on-demand. The exact symptom of
-#    that miss: Qt/KDE apps (Dolphin) show the right ICONS — KIconLoader reads
-#    ~/.config/kdeglobals [Icons] directly — but a WHITE palette, because
-#    QT_QPA_PLATFORMTHEME never reached them, so qt6ct's Breeze widget style was
-#    never applied and Qt fell back to the light default Fusion palette (which
-#    ignores kdeglobals colours). Exporting here puts these in the real process
-#    environment of Hyprland AND every descendant, however it's spawned.
-#    Keep in sync with scripts/colorscheme.sh (writes the qt6ct.conf + kdeglobals
-#    these point at) and ~/.icons/default (cursor inheritance).
+#    propagation is unreliable for apps launched on-demand, and the symptom is a
+#    Qt/KDE app (Dolphin) that shows the right ICONS but a WHITE palette because
+#    the platform theme never reached it. Exporting here puts these in the real
+#    process environment of Hyprland AND every descendant, however it's spawned.
+#    Keep in sync with scripts/colorscheme.sh (writes the kdeglobals + qt6ct.conf
+#    the platform theme reads) and ~/.icons/default (cursor inheritance).
 export QT_QPA_PLATFORM="wayland;xcb"
-export QT_QPA_PLATFORMTHEME=qt6ct          # qt6ct → dark palette + icon theme from qt6ct.conf
-# Force the Fusion widget style for ALL Qt apps. Fusion (built into Qt — no extra
-# package) honours qt6ct's QPalette directly, so KDE/Qt apps (Dolphin, Kate,
-# Gwenview…) go fully dark INCLUDING item views. Breeze was dropped: outside a
-# Plasma session its own colour engine ignores the palette and renders light,
-# which would need plasma-integration (a second theming stack) to fix.
-export QT_STYLE_OVERRIDE=Fusion
+# "kde" platform theme (from plasma-integration) reads ~/.config/kdeglobals and
+# applies our dark colours + accent to EVERY KDE/Qt app — including the item
+# views (Dolphin/Ark file panes) that qt6ct/Fusion alone leave white, because
+# KDE apps colour those via KColorScheme, which only the kde platform theme feeds.
+# The widget style comes from kdeglobals ([KDE] widgetStyle=Fusion), so no
+# QT_STYLE_OVERRIDE needed. (qt6ct stays installed as a fallback if this is absent.)
+export QT_QPA_PLATFORMTHEME=kde
 export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 export QT_AUTO_SCREEN_SCALE_FACTOR=1
 export XCURSOR_THEME=Mocu-White-Right      # one cursor everywhere (XWayland + every toolkit)

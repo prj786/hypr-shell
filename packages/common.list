@@ -95,7 +95,13 @@ socat
 # ── theming (GTK + Qt unified) + fonts ───────────────────────────────────────
 adw-gtk-theme
 gnome-themes-extra
-qt6ct                   # Qt platform theme — supplies the dark palette + Fusion style
+# plasma-integration = the "kde" Qt platform theme (QT_QPA_PLATFORMTHEME=kde). It
+# reads ~/.config/kdeglobals and pushes our dark colours + accent into EVERY KDE/Qt
+# app, including item views (the Dolphin/Ark file panes) that qt6ct alone can't reach.
+# NOT a Plasma desktop: pulls only KF6 libs (mostly already present via our KDE apps)
+# — no plasmashell/kwin/plasma-desktop/plasma-workspace.
+plasma-integration
+qt6ct                   # Qt5/6 fallback theme config (palette) when kde theme is absent
 kvantum
 papirus-icon-theme      # fallback icon set (Reversal inherits/falls back to it)
 librsvg                  # rsvg-convert — builds the Mocu cursor (phase 20 source step)

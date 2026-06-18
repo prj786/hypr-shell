@@ -36,6 +36,15 @@ phase_userconfig() {
         _mime mpv.desktop              video/mp4 video/x-matroska video/webm video/quicktime audio/mpeg audio/flac
     fi
 
+    # Build the KDE service cache (ksycoca) so KDE apps (Dolphin's "Open With",
+    # file associations) actually SEE the installed .desktop apps and the defaults
+    # we just wrote to mimeapps.list. Without it KDE finds nothing and falls back
+    # to offering Discover for every unknown type. Safe to run from the installer;
+    # KDE also rebuilds it on demand, but seeding it now makes first launch correct.
+    if command -v kbuildsycoca6 >/dev/null 2>&1; then
+        run kbuildsycoca6 --noincremental 2>/dev/null || true
+    fi
+
     # (Reversal icon theme + Mocu cursor are installed system-wide in phase 20.)
 
     # default app appearance: dark across GTK + Qt + KDE, tinted with the default

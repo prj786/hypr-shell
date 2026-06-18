@@ -20,7 +20,7 @@ phase_postcheck() {
     _check "greeter: greetd + regreet + cage"     sh -c 'pacman -Qq greetd && pacman -Qq greetd-regreet && pacman -Qq cage'
     _check "greeter: Quickshell config installed"  test -r /etc/xdg/quickshell/hyprshell-greeter/shell.qml
     _check "fully Wayland: no xorg-server"         sh -c '! pacman -Qq xorg-server 2>/dev/null'
-    _check "theming: qt6ct (Qt palette) installed" sh -c 'pacman -Qq qt6ct'
+    _check "theming: KDE platform theme (plasma-integration)" sh -c 'pacman -Qq plasma-integration'
     _check "theming: Reversal icons installed"     test -d /usr/share/icons/Reversal-blue-dark
     _check "theming: Mocu cursor installed"        test -d /usr/share/icons/Mocu-White-Right
     _check "session target active"                systemctl --user is-active hyprland-session.target
