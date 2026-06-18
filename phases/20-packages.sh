@@ -62,6 +62,17 @@ phase_packages() {
         return 0
     fi
 
+    # Known provider conflict: pipewire-jack and jack2 both provide `jack` and
+    # can't coexist. We ship the PipeWire stack, so PipeWire owns JACK. If the
+    # standalone jack2 is installed it dead-ends the non-interactive install on
+    # the "Remove jack2? [y/N]" prompt (--noconfirm answers N → whole batch
+    # fails). Force-remove jack2 (keeping its dependents — `jack` is immediately
+    # re-satisfied by pipewire-jack in the batch below).
+    if pkg_present jack2; then
+        info "removing jack2 (conflicts with pipewire-jack; PipeWire provides JACK)"
+        sudo_run pacman -Rdd --noconfirm jack2 || warn "could not remove jack2 — pipewire-jack may be skipped"
+    fi
+
     ask_yes "Install ${#off[@]} official packages now?" && install_official "${off[@]}" || warn "skipped official packages"
     if [ "${#aur[@]}" -gt 0 ]; then
         ask_yes "Build & install ${#aur[@]} AUR packages now? (compiles from source)" \
