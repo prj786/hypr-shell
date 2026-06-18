@@ -115,7 +115,7 @@ inter-font
 git                     # pre-installed VCS (also used by the AUR bootstrap)
 git-delta               # nicer git diffs
 lazygit                 # TUI git client
-gh                      # GitHub CLI
+github-cli              # GitHub CLI (provides the `gh` command)
 mise                    # polyglot runtime/version manager — owns Node here
 ripgrep                 # fast search (rg)
 fd                      # fast file find
