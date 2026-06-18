@@ -14,13 +14,24 @@ full DE.
 ## Quick start
 
 ```sh
-git clone https://github.com/<your-username>/hypr-shell ~/hypr-shell && cd ~/hypr-shell
+git clone https://github.com/prj786/hypr-shell ~/hypr-shell && cd ~/hypr-shell
 bash install.sh              # prompts before each change
 # or:
 bash install.sh --dry-run    # show everything it would do, change nothing
 bash install.sh --yes        # unattended
 bash install.sh --check-only # just run the verification checklist
 ```
+
+**Updating** is the same command — pull and re-run:
+
+```sh
+cd ~/hypr-shell && git pull && bash install.sh
+```
+
+The installer is fully **re-runnable**: package installs are skipped if already
+present, dotfiles are a symlink farm (re-linking is a no-op), and a package that
+isn't in the repos is **warned and skipped** rather than aborting the run — so a
+single missing package never blocks the rest of the install.
 
 Run it as your **normal user** (not root) — the AUR helper and `makepkg` refuse
 root, and the script uses `sudo` only where it must. Then reboot, pick
