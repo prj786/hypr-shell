@@ -5,65 +5,81 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Io
 
-// Places — the directories panel that pops up above the dock's folder button.
-// Shows the standard XDG locations (Home, Desktop, Documents, …) plus any
-// folders you've pinned (persisted via Globals.pinnedPlaces). Works "like apps":
-//   • click a place   → opens it in the file manager (xdg-open) and closes
-//   • drag a place out → starts a FILE drag (text/uri-list, file://…) so you can
-//     drop the folder straight into Slack, an upload field, etc. — same idiom as
-//     the screenshot stack (ScreenshotPreview.qml).
-//   • pin/unpin        → keep extra folders here.
-// The window masks ONLY the box, so the area around it passes input through —
-// that's what lets a drag land on the app behind the panel. Themed from Theme.qml.
+// Places — a compact file manager that pops up above the dock's folder button.
+// You browse INTO folders (no external Dolphin), with the current path + a back
+// arrow across the top. Drag any entry OUT to drop it as a file into another app
+// (Slack, upload fields, …) — text/uri-list, same idiom as ScreenshotPreview.
+// Drop a file/folder ONTO the panel to PIN it; pinned items sit in a "Pinned"
+// strip with a ✕ to remove. The window masks ONLY the box, so the surrounding
+// area passes input through — that's what lets a drag land on the app behind.
+// Themed from Theme.qml.
 Scope {
     id: root
     function g(c) { return String.fromCodePoint(c) }
 
     property string home: ""
-    property var places: []          // [{ name, path }] — resolved XDG dirs
-    property string pinPath: ""      // the "pin a folder" input text
+    property string cwd: ""            // directory currently being browsed
+    property var entries: []           // [{ name, path, isDir }] of cwd
+    property var pinTypes: ({})        // pinned path -> isDir (for icon + click)
 
-    // freedesktop icon name for a place (falls back to a generic folder)
-    function placeIcon(name) {
-        switch (name) {
-        case "Home":      return "user-home"
-        case "Desktop":   return "user-desktop"
-        case "Documents": return "folder-documents"
-        case "Downloads": return "folder-download"
-        case "Music":     return "folder-music"
-        case "Pictures":  return "folder-pictures"
-        case "Videos":    return "folder-videos"
-        default:          return "folder"
-        }
+    function tilde(p) { return (root.home && String(p).indexOf(root.home) === 0) ? "~" + String(p).slice(root.home.length) : p }
+    function baseName(p) { var s = String(p).replace(/\/+$/, ""); var i = s.lastIndexOf("/"); return i >= 0 ? (s.slice(i + 1) || "/") : s }
+    function parentOf(p) { var s = String(p).replace(/\/+$/, ""); var i = s.lastIndexOf("/"); return i > 0 ? s.slice(0, i) : "/" }
+    function uriToPath(u) { var s = String(u).trim(); if (s.indexOf("file://") === 0) s = s.slice(7); try { s = decodeURIComponent(s) } catch (e) {} return s.replace(/\/+$/, "") }
+    function fileUri(p) { return "file://" + p + "\r\n" }
+
+    function enter(path) { root.cwd = path }                 // changing cwd re-lists
+    function openFile(path) { Quickshell.execDetached(["xdg-open", path]) }
+    function activate(path, isDir) { if (isDir) root.enter(path); else root.openFile(path) }
+    function pinDrop(uris) {
+        for (var i = 0; i < uris.length; i++) { var p = root.uriToPath(uris[i]); if (p && p.indexOf("/") === 0 && !Globals.isPinnedPlace(p)) Globals.togglePinPlace(p) }
     }
-    function baseName(p) { var s = String(p).replace(/\/+$/, ""); var i = s.lastIndexOf("/"); return i >= 0 ? s.slice(i + 1) || "/" : s }
-    function expand(p) { var s = String(p).trim(); if (s === "~") return root.home; if (s.indexOf("~/") === 0) return root.home + s.slice(1); return s }
-    function openPath(p) { Quickshell.execDetached(["xdg-open", p]); Globals.placesOpen = false }
 
-    // resolve the XDG user dirs (Home always; the rest via xdg-user-dir, only if
-    // they exist) — one line "name\tpath" each, plus HOME= for ~ expansion.
+    // ── directory lister: folders + files (no dotfiles), type-tagged ──
     Process {
-        id: resolver
-        command: ["sh", "-c",
-            'echo "HOME=$HOME"; printf "Home\\t%s\\n" "$HOME"; ' +
-            'for pair in Desktop:DESKTOP Documents:DOCUMENTS Downloads:DOWNLOAD Music:MUSIC Pictures:PICTURES Videos:VIDEOS; do ' +
-            '  n=${pair%%:*}; k=${pair##*:}; p=$(xdg-user-dir "$k" 2>/dev/null); ' +
-            '  [ -n "$p" ] && [ "$p" != "$HOME" ] && [ -d "$p" ] && printf "%s\\t%s\\n" "$n" "$p"; ' +
-            'done']
+        id: lister
+        running: false
+        command: ["sh", "-c", 'D="$1"; [ -d "$D" ] || exit 0; find "$D" -maxdepth 1 -mindepth 1 -not -name ".*" -printf "%Y\\t%f\\n" 2>/dev/null', "sh", root.cwd]
         stdout: StdioCollector { onStreamFinished: {
-            var out = [], ls = this.text.split("\n")
+            var dirs = [], files = [], ls = this.text.split("\n")
             for (var i = 0; i < ls.length; i++) {
-                var ln = ls[i]
-                if (ln.indexOf("HOME=") === 0) { root.home = ln.slice(5); continue }
-                var t = ln.indexOf("\t"); if (t < 0) continue
-                out.push({ name: ln.slice(0, t), path: ln.slice(t + 1) })
+                var t = ls[i].indexOf("\t"); if (t < 0) continue
+                var ty = ls[i].slice(0, t), nm = ls[i].slice(t + 1)
+                if (!nm) continue
+                var e = { name: nm, path: (root.cwd === "/" ? "" : root.cwd) + "/" + nm, isDir: (ty === "d") }
+                ;(e.isDir ? dirs : files).push(e)
             }
-            root.places = out
+            var byName = function (a, b) { return a.name.toLowerCase().localeCompare(b.name.toLowerCase()) }
+            dirs.sort(byName); files.sort(byName)
+            root.entries = dirs.concat(files)
         } }
     }
-    Component.onCompleted: { root.openScreen = root.focusedScreen(); resolver.running = true }
+    onCwdChanged: if (root.cwd) { lister.command = ["sh", "-c", 'D="$1"; [ -d "$D" ] || exit 0; find "$D" -maxdepth 1 -mindepth 1 -not -name ".*" -printf "%Y\\t%f\\n" 2>/dev/null', "sh", root.cwd]; lister.running = false; lister.running = true }
 
-    // latch monitor on open (avoid focus-follows-mouse surface-remap blink)
+    Process {
+        id: initProc; running: false
+        command: ["sh", "-c", "echo $HOME"]
+        stdout: StdioCollector { onStreamFinished: { root.home = this.text.trim(); if (!root.cwd) root.cwd = root.home } }
+    }
+
+    // resolve dir/file type for the pinned paths (icon + click behaviour)
+    Process { id: pinTyper; running: false
+        stdout: StdioCollector { onStreamFinished: {
+            var m = {}, ls = this.text.split("\n")
+            for (var i = 0; i < ls.length; i++) { var t = ls[i].indexOf("\t"); if (t < 0) continue; m[ls[i].slice(t + 1)] = (ls[i].slice(0, t) === "d") }
+            root.pinTypes = m
+        } }
+    }
+    function refreshPinTypes() {
+        var p = Globals.pinnedPlaces || []
+        if (!p.length) { root.pinTypes = ({}); return }
+        pinTyper.command = ["sh", "-c", 'for p in "$@"; do [ -d "$p" ] && echo "d\\t$p" || echo "f\\t$p"; done', "sh"].concat(p)
+        pinTyper.running = false; pinTyper.running = true
+    }
+    Connections { target: Globals; function onPinnedPlacesChanged() { root.refreshPinTypes() } }
+
+    Component.onCompleted: { root.openScreen = root.focusedScreen(); initProc.running = true; root.refreshPinTypes() }
+
     property var openScreen: null
     function focusedScreen() {
         var fm = Hyprland.focusedMonitor, ss = Quickshell.screens
@@ -90,12 +106,12 @@ Scope {
         anchors { top: true; bottom: true; left: true; right: true }
 
         // Mask ONLY the box: input outside it passes through to the app below, so
-        // a folder drag can land on Slack/etc. (see header). No click-outside close.
+        // a folder/file drag can land on Slack/etc. (see header). No outside-click close.
         mask: Region { item: box }
 
         Timer { id: closeTimer; interval: 220 }
         Connections { target: Globals; function onPlacesOpenChanged() {
-            if (Globals.placesOpen) { root.openScreen = root.focusedScreen(); resolver.running = true; root.pinPath = ""; box.forceActiveFocus() }
+            if (Globals.placesOpen) { root.openScreen = root.focusedScreen(); if (root.home && !root.cwd) root.cwd = root.home; lister.running = true; root.refreshPinTypes(); box.forceActiveFocus() }
             else closeTimer.restart()
         } }
 
@@ -104,7 +120,7 @@ Scope {
             focus: true
             x: Math.max(12, Math.min(parent.width - width - 12, Globals.placesAnchorX - width / 2))
             y: parent.height - height - 90
-            width: 380; height: 470
+            width: 400; height: 470
             radius: Theme.radius; color: Theme.panel
             border.color: Theme.stroke; border.width: 1
             opacity: Globals.placesOpen ? 1 : 0
@@ -117,109 +133,118 @@ Scope {
 
             Keys.onEscapePressed: Globals.placesOpen = false
 
-            // ── a single place tile: icon + label, click=open, drag=file URI ──
-            component PlaceTile: Item {
-                id: tile
-                property string pName: ""
-                property string pPath: ""
-                property bool pinned: false
-                width: grid.cellW; height: 84
+            // drop a file/folder onto the panel → pin it
+            DropArea {
+                anchors.fill: parent
+                onEntered: function (d) { d.accept(Qt.CopyAction) }
+                onDropped: function (d) {
+                    var uris = d.hasUrls ? d.urls : (d.getDataAsString ? d.getDataAsString("text/uri-list").split(/\r?\n/) : [])
+                    root.pinDrop(uris)
+                }
+            }
 
-                Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 12; color: tMa.containsMouse ? Theme.hover : "transparent" }
-                Column {
-                    anchors.centerIn: parent; spacing: 6
+            // ── a small round icon button (back / home / pin) ──
+            component IconBtn: Rectangle {
+                property string glyph: ""
+                property bool enabledState: true
+                signal act()
+                width: 28; height: 28; radius: 8
+                color: ibMa.containsMouse && enabledState ? Theme.hover : "transparent"
+                opacity: enabledState ? 1 : 0.35
+                Text { anchors.centerIn: parent; text: parent.glyph; font.family: Theme.fontMono; font.pixelSize: 15; color: Theme.fg }
+                MouseArea { id: ibMa; anchors.fill: parent; hoverEnabled: true; enabled: parent.enabledState; cursorShape: Qt.PointingHandCursor; onClicked: parent.act() }
+            }
+
+            // ── one filesystem row (browse entry OR pinned item) ──
+            component FsRow: Rectangle {
+                id: fr
+                property string rName: ""
+                property string rPath: ""
+                property bool rIsDir: false
+                property bool rPinned: false
+                width: parent ? parent.width : 100
+                height: 34; radius: 8
+                color: frMa.containsMouse ? Theme.hover : "transparent"
+
+                Row {
+                    anchors.left: parent.left; anchors.leftMargin: 8; anchors.right: rightBtns.left; anchors.rightMargin: 6
+                    anchors.verticalCenter: parent.verticalCenter; spacing: 9
                     Image {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        width: 42; height: 42; sourceSize.width: 64; sourceSize.height: 64
-                        source: Quickshell.iconPath(root.placeIcon(tile.pName), "folder")
+                        anchors.verticalCenter: parent.verticalCenter; width: 22; height: 22; sourceSize.width: 44; sourceSize.height: 44
+                        source: Quickshell.iconPath(fr.rIsDir ? "folder" : "text-x-generic", fr.rIsDir ? "folder" : "application-x-zerosize")
                     }
-                    Text { width: tile.width - 10; horizontalAlignment: Text.AlignHCenter; text: tile.pName; color: Theme.fg; font.family: Theme.fontText; font.pixelSize: 11; elide: Text.ElideRight; maximumLineCount: 1 }
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: fr.rName; color: Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsBody; elide: Text.ElideRight; width: Math.min(implicitWidth, fr.width - 90) }
                 }
 
-                // invisible drag proxy — dragging this fires the external file drag
-                // while the tile stays put (same trick as ScreenshotPreview).
+                // drag OUT → file URI (drop into another app)
                 Item {
                     id: dragProxy; width: 1; height: 1
-                    Drag.active: tMa.drag.active
+                    Drag.active: frMa.drag.active
                     Drag.dragType: Drag.Automatic
                     Drag.supportedActions: Qt.CopyAction
                     Drag.proposedAction: Qt.CopyAction
-                    Drag.mimeData: ({ "text/uri-list": "file://" + tile.pPath + "\r\n" })
+                    Drag.mimeData: ({ "text/uri-list": root.fileUri(fr.rPath) })
                 }
                 MouseArea {
-                    id: tMa
-                    anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    id: frMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                     drag.target: dragProxy
-                    onClicked: root.openPath(tile.pPath)
+                    onClicked: root.activate(fr.rPath, fr.rIsDir)
                 }
 
-                // unpin badge (pinned tiles only, on hover)
-                Rectangle {
-                    visible: tile.pinned && (tMa.containsMouse || uMa.containsMouse)
-                    anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 5
-                    width: 20; height: 20; radius: 10; color: Qt.rgba(0, 0, 0, 0.45)
-                    Text { anchors.centerIn: parent; text: root.g(0xF0156); font.family: Theme.fontMono; font.pixelSize: 12; color: Theme.fg }
-                    MouseArea { id: uMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Globals.togglePinPlace(tile.pPath) }
+                Row {
+                    id: rightBtns
+                    anchors.right: parent.right; anchors.rightMargin: 8; anchors.verticalCenter: parent.verticalCenter; spacing: 4
+                    // folder hint chevron (browse entries)
+                    Text { visible: fr.rIsDir && !fr.rPinned; anchors.verticalCenter: parent.verticalCenter; text: root.g(0xF0142); font.family: Theme.fontMono; font.pixelSize: 13; color: Theme.fgDim }
+                    // unpin ✕ (pinned items)
+                    Rectangle { visible: fr.rPinned; width: 20; height: 20; radius: 10; anchors.verticalCenter: parent.verticalCenter
+                        color: upMa.containsMouse ? Theme.danger : Qt.rgba(0, 0, 0, 0.35)
+                        Text { anchors.centerIn: parent; text: root.g(0xF0156); font.family: Theme.fontMono; font.pixelSize: 12; color: Theme.fg }
+                        MouseArea { id: upMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Globals.togglePinPlace(fr.rPath) }
+                    }
                 }
             }
 
             Column {
-                anchors.fill: parent; anchors.margins: 14; spacing: 10
+                anchors.fill: parent; anchors.margins: 12; spacing: 8
 
-                // header
-                Item {
-                    width: parent.width; height: 24
-                    Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "Places"; color: Theme.fg; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsLarge; font.weight: Font.Bold }
+                // ── address bar: back · home · path · pin-current ──
+                Row {
+                    width: parent.width; height: 30; spacing: 4
+                    IconBtn { glyph: root.g(0xF004D); enabledState: root.cwd !== "/" && root.cwd !== ""; anchors.verticalCenter: parent.verticalCenter; onAct: root.enter(root.parentOf(root.cwd)) }
+                    IconBtn { glyph: root.g(0xF02DC); anchors.verticalCenter: parent.verticalCenter; onAct: root.enter(root.home) }
                     Rectangle {
-                        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                        width: 22; height: 22; radius: 11; color: clMa.containsMouse ? Theme.hover : "transparent"
-                        Text { anchors.centerIn: parent; text: root.g(0xF0156); font.family: Theme.fontMono; font.pixelSize: 13; color: Theme.fgDim }
-                        MouseArea { id: clMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Globals.placesOpen = false }
+                        width: parent.width - 28*3 - 4*3; height: 30; radius: Theme.radiusInner
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: Theme.bg; border.color: Theme.stroke; border.width: 1
+                        Text { anchors.left: parent.left; anchors.right: parent.right; anchors.leftMargin: 10; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter
+                            text: root.tilde(root.cwd); color: Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; elide: Text.ElideLeft }
                     }
+                    IconBtn { glyph: root.g(Globals.isPinnedPlace(root.cwd) ? 0xF04CE : 0xF04D2); enabledState: root.cwd !== ""; anchors.verticalCenter: parent.verticalCenter; onAct: Globals.togglePinPlace(root.cwd) }
                 }
-                Text { width: parent.width; text: "Click to open · drag a folder into any app"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10 }
 
                 Flickable {
-                    width: parent.width; height: parent.height - y - pinRow.height - 10
+                    width: parent.width; height: parent.height - y
                     contentHeight: col.implicitHeight; clip: true; boundsBehavior: Flickable.StopAtBounds
                     Column {
                         id: col
-                        width: parent.width; spacing: 8
-                        readonly property real cellW: width / 3
+                        width: parent.width; spacing: 2
 
-                        Grid {
-                            id: grid
-                            property real cellW: col.cellW
-                            width: parent.width; columns: 3; rowSpacing: 2; columnSpacing: 0
-                            Repeater { model: root.places; delegate: PlaceTile { required property var modelData; pName: modelData.name; pPath: modelData.path } }
+                        // pinned strip
+                        Text { width: parent.width; visible: (Globals.pinnedPlaces || []).length > 0; text: "PINNED"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold; bottomPadding: 2 }
+                        Repeater {
+                            model: (Globals.pinnedPlaces || [])
+                            delegate: FsRow { required property var modelData; width: col.width; rName: root.baseName(modelData); rPath: modelData; rIsDir: root.pinTypes[modelData] === true; rPinned: true }
                         }
+                        Rectangle { visible: (Globals.pinnedPlaces || []).length > 0; width: parent.width; height: 1; color: Theme.stroke; opacity: 0.6 }
 
-                        Text {
-                            width: parent.width; visible: (Globals.pinnedPlaces || []).length > 0
-                            text: "PINNED"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold
+                        // current directory
+                        Text { width: parent.width; visible: root.entries.length > 0; text: "FOLDER"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold; topPadding: 4; bottomPadding: 2 }
+                        Repeater {
+                            model: root.entries
+                            delegate: FsRow { required property var modelData; width: col.width; rName: modelData.name; rPath: modelData.path; rIsDir: modelData.isDir }
                         }
-                        Grid {
-                            width: parent.width; columns: 3; rowSpacing: 2; columnSpacing: 0
-                            visible: (Globals.pinnedPlaces || []).length > 0
-                            Repeater { model: Globals.pinnedPlaces; delegate: PlaceTile { required property var modelData; pName: root.baseName(modelData); pPath: modelData; pinned: true } }
-                        }
-                    }
-                }
-
-                // pin a folder by path (~ allowed)
-                Rectangle {
-                    id: pinRow
-                    width: parent.width; height: 34; radius: Theme.radiusInner
-                    color: Theme.bg; border.color: pinIn.activeFocus ? Theme.accent : Theme.stroke; border.width: 1
-                    Text { anchors.left: parent.left; anchors.leftMargin: 10; anchors.verticalCenter: parent.verticalCenter; text: root.g(0xF0415); font.family: Theme.fontMono; font.pixelSize: 13; color: Theme.fgDim }
-                    TextInput {
-                        id: pinIn
-                        anchors.fill: parent; anchors.leftMargin: 32; anchors.rightMargin: 12; verticalAlignment: TextInput.AlignVCenter
-                        color: Theme.fg; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; clip: true
-                        onTextChanged: root.pinPath = text
-                        Keys.onEscapePressed: Globals.placesOpen = false
-                        onAccepted: { var p = root.expand(root.pinPath); if (p && p.indexOf("/") === 0 && !Globals.isPinnedPlace(p)) { Globals.togglePinPlace(p); pinIn.text = "" } }
-                        Text { anchors.verticalCenter: parent.verticalCenter; visible: pinIn.text.length === 0; text: "Pin a folder by path… (Enter)"; color: Theme.fgDim; font: pinIn.font }
+                        Text { width: parent.width; visible: root.entries.length === 0; text: "Empty folder"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; topPadding: 10 }
                     }
                 }
             }

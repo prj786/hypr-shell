@@ -184,7 +184,8 @@ Scope {
             else closeTimer.restart()
         } }
 
-        MouseArea { anchors.fill: parent; onClicked: Globals.storeOpen = false }
+        // click-outside closes — UNLESS a job is running (keep the status visible)
+        MouseArea { anchors.fill: parent; onClicked: if (root.busyId === "") Globals.storeOpen = false }
 
         // small reusable spinner
         component Spinner: Item {
@@ -211,7 +212,7 @@ Scope {
             layer.effect: MultiEffect { shadowEnabled: true; shadowColor: Theme.shadow; shadowOpacity: 0.5; shadowBlur: 1.0; shadowVerticalOffset: 8; blurMax: 48 }
 
             MouseArea { anchors.fill: parent }
-            Keys.onEscapePressed: { if (root.pwOpen) root.cancelAsk(); else Globals.storeOpen = false }
+            Keys.onEscapePressed: { if (root.pwOpen) root.cancelAsk(); else if (root.busyId === "") Globals.storeOpen = false }
 
             Column {
                 anchors.fill: parent; anchors.margins: 14; spacing: 12
@@ -223,7 +224,25 @@ Scope {
 
                     // AUR helper (paru) is provided by setup — just reflect its presence.
                     Row {
-                        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; spacing: 6
+                        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; spacing: 8
+                        // running-job chip: "1 app installing/removing" — hover names it.
+                        Rectangle {
+                            visible: root.busyId !== ""
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: instRow.implicitWidth + 14; height: 18; radius: 9; color: Theme.accent
+                            Row { id: instRow; anchors.centerIn: parent; spacing: 5
+                                Spinner { width: 10; height: 10; anchors.verticalCenter: parent.verticalCenter; ring: Qt.rgba(1, 1, 1, 0.4); dot: Theme.accentText }
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: "1 app " + (root.busyKind === "remove" ? "removing" : "installing"); color: Theme.accentText; font.family: Theme.fontText; font.pixelSize: 9; font.weight: Font.DemiBold }
+                            }
+                            MouseArea { id: instMa; anchors.fill: parent; hoverEnabled: true }
+                            Rectangle {
+                                visible: instMa.containsMouse; z: 50
+                                anchors.top: parent.bottom; anchors.topMargin: 6; anchors.right: parent.right
+                                width: ttT.implicitWidth + 16; height: ttT.implicitHeight + 12
+                                radius: 8; color: Theme.elevated; border.color: Theme.stroke; border.width: 1
+                                Text { id: ttT; anchors.centerIn: parent; text: (root.busyKind === "remove" ? "Removing " : "Installing ") + root.busyId + "…"; color: Theme.fg; font.family: Theme.fontText; font.pixelSize: 10 }
+                            }
+                        }
                         Text { anchors.verticalCenter: parent.verticalCenter; text: root.g(root.helper !== "" ? 0xF012C : 0xF0159); font.family: Theme.fontMono; font.pixelSize: 12; color: root.helper !== "" ? Theme.accent : Theme.fgDim }
                         Text { anchors.verticalCenter: parent.verticalCenter; text: root.helper !== "" ? ("AUR · " + root.helper) : "Official repos only"; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10 }
                     }
@@ -244,7 +263,7 @@ Scope {
                             if (text.trim().length < 2) { root.results = []; root.searching = false; searchDebounce.stop() }
                             else searchDebounce.restart()
                         }
-                        Keys.onEscapePressed: Globals.storeOpen = false
+                        Keys.onEscapePressed: if (root.busyId === "") Globals.storeOpen = false
                         onAccepted: { searchDebounce.stop(); root.doSearch() }
                         Text { anchors.verticalCenter: parent.verticalCenter; visible: storeIn.text.length === 0; text: "Search apps to install or remove…"; color: Theme.fgDim; font: storeIn.font }
                     }
