@@ -10,7 +10,13 @@
 # Called by: Settings → Theme (live), Quickshell at startup (re-sync), phase 60
 # (install default). Writes config files always; gsettings is a best-effort live
 # nudge for already-running apps.
-set -eu
+#
+# NOT `set -e`: the GTK config is written first and kdeglobals (the KDE/Qt colours)
+# LAST, so any non-zero line in between (a stray test, a missing gsettings key)
+# would abort before kdeglobals and leave GTK dark but KDE apps on Breeze's light
+# default — the exact "GTK dark, KDE light" split. `set -u` only: every file is
+# written best-effort and the script always reaches the kdeglobals write.
+set -u
 
 MODE="${1:-dark}"
 case "$MODE" in dark|light) ;; *) MODE=dark ;; esac
