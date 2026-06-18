@@ -41,15 +41,18 @@ Scope {
     }
     function cancelAsk() { root.pwOpen = false; root.pwText = ""; root.pendId = ""; root.pendKind = "" }
 
-    // The privileged part of each op. paru is run as the normal user (it refuses
-    // root) and calls `sudo` itself; our own steps use sudo too. None of these
-    // read stdin — see wrap(): we hand sudo an ASKPASS helper, which it uses
-    // automatically because the process has no controlling terminal. That avoids
-    // the deadlock where a second sudo blocks forever on an empty stdin.
+    // The privileged part of each op. Our own pacman steps use `sudo -A`, which
+    // makes sudo read the password from the ASKPASS helper (set up in wrap()).
+    // paru runs as the normal user (it refuses root) and calls `sudo` ITSELF —
+    // but plain `sudo` only consults SUDO_ASKPASS when invoked with `-A`, so
+    // paru's internal `sudo` would otherwise find no terminal and die with
+    // "sudo: a password is required" (the exact AUR-install failure). Passing
+    // `--sudoflags -A` makes every sudo paru runs use our askpass too, so the
+    // whole AUR build+install authenticates non-interactively, no terminal.
     function opBody(kind, id) {
         if (kind === "install")
             return root.helper
-                ? root.helper + " -S --noconfirm --skipreview --needed -- " + root.sq(id)
+                ? root.helper + " -S --noconfirm --skipreview --needed --sudoflags '-A' -- " + root.sq(id)
                 : "sudo -A pacman -S --noconfirm --needed -- " + root.sq(id)
         // kind === "remove"
         return "sudo -A pacman -Rns --noconfirm -- " + root.sq(id)
@@ -108,7 +111,7 @@ Scope {
 
     IpcHandler {
         target: "store"
-        function toggle(): void { Globals.launcherOpen = false; Globals.storeOpen = !Globals.storeOpen }
+        function toggle(): void { Globals.launcherOpen = false; Globals.placesOpen = false; Globals.storeOpen = !Globals.storeOpen }
         function show(): void { Globals.storeOpen = true }
         function hide(): void { Globals.storeOpen = false }
     }

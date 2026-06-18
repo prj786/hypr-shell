@@ -58,9 +58,9 @@ Scope {
         // slide the dock out from under the cursor → no flicker.
         property bool revealed: !Globals.dockAutohide || edgeHov.hovered || dockHov.hovered
                                  || closeHold.running || Globals.launcherOpen || Globals.storeOpen
-                                 || Globals.overviewOpen
+                                 || Globals.placesOpen || Globals.overviewOpen
         Timer { id: closeHold; interval: 280 }
-        function maybeHide() { if (!edgeHov.hovered && !dockHov.hovered && !Globals.launcherOpen && !Globals.storeOpen) closeHold.restart() }
+        function maybeHide() { if (!edgeHov.hovered && !dockHov.hovered && !Globals.launcherOpen && !Globals.storeOpen && !Globals.placesOpen) closeHold.restart() }
         Connections { target: edgeHov; function onHoveredChanged() { win.maybeHide() } }
         Connections { target: dockHov; function onHoveredChanged() { win.maybeHide() } }
 
@@ -91,7 +91,7 @@ Scope {
             // a square dock button with custom-drawn glyph
             component DockBtn: Rectangle {
                 id: db
-                property string kind: "launcher"   // launcher | overview | store
+                property string kind: "launcher"   // launcher | overview | store | places
                 property bool activeState: false
                 signal go()
                 width: 46; height: 46; radius: 13
@@ -121,6 +121,13 @@ Scope {
                         ShapePath { strokeWidth: 0; fillColor: db.fg; startX: 0; startY: 0; PathLine { x: 14; y: 0 } PathLine { x: 7; y: 7 } PathLine { x: 0; y: 0 } } }
                     Rectangle { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 2; width: 18; height: 4; radius: 2; color: db.fg }
                 }
+                // places: a folder (body + tab)
+                Item {
+                    visible: db.kind === "places"
+                    anchors.centerIn: parent; width: 24; height: 24
+                    Rectangle { x: 2; y: 5;  width: 9;  height: 5;  radius: 2; color: db.fg }
+                    Rectangle { x: 2; y: 8;  width: 20; height: 13; radius: 3; color: db.fg }
+                }
                 MouseArea { id: dbMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: db.go() }
             }
 
@@ -129,9 +136,10 @@ Scope {
                 anchors.centerIn: parent
                 spacing: 8
 
-                DockBtn { id: launchBtn; kind: "launcher"; activeState: Globals.launcherOpen; anchors.verticalCenter: parent.verticalCenter; onGo: { Globals.launcherAnchorX = launchBtn.mapToItem(null, launchBtn.width / 2, 0).x; Globals.storeOpen = false; Globals.launcherOpen = !Globals.launcherOpen } }
+                DockBtn { id: launchBtn; kind: "launcher"; activeState: Globals.launcherOpen; anchors.verticalCenter: parent.verticalCenter; onGo: { Globals.launcherAnchorX = launchBtn.mapToItem(null, launchBtn.width / 2, 0).x; Globals.storeOpen = false; Globals.placesOpen = false; Globals.launcherOpen = !Globals.launcherOpen } }
                 DockBtn { kind: "overview"; anchors.verticalCenter: parent.verticalCenter; onGo: Quickshell.execDetached(["qs", "ipc", "call", "overview", "toggle"]) }
-                DockBtn { id: storeBtn; kind: "store"; activeState: Globals.storeOpen; anchors.verticalCenter: parent.verticalCenter; onGo: { Globals.storeAnchorX = storeBtn.mapToItem(null, storeBtn.width / 2, 0).x; Globals.launcherOpen = false; Globals.storeOpen = !Globals.storeOpen } }
+                DockBtn { id: storeBtn; kind: "store"; activeState: Globals.storeOpen; anchors.verticalCenter: parent.verticalCenter; onGo: { Globals.storeAnchorX = storeBtn.mapToItem(null, storeBtn.width / 2, 0).x; Globals.launcherOpen = false; Globals.placesOpen = false; Globals.storeOpen = !Globals.storeOpen } }
+                DockBtn { id: placesBtn; kind: "places"; activeState: Globals.placesOpen; anchors.verticalCenter: parent.verticalCenter; onGo: { Globals.placesAnchorX = placesBtn.mapToItem(null, placesBtn.width / 2, 0).x; Globals.launcherOpen = false; Globals.storeOpen = false; Globals.placesOpen = !Globals.placesOpen } }
 
                 Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 1; height: 40; color: Theme.stroke }
 

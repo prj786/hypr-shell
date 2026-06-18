@@ -2,4 +2,5 @@
 dotfiles/hypr/generated/user.lua
 dotfiles/quickshell/user-theme.json
 dotfiles/quickshell/pinned-apps.json
+dotfiles/quickshell/places.json
 *.bak.*

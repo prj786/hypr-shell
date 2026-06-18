@@ -50,8 +50,10 @@ QtObject {
     // ── Dock popups ────────────────────────────────────────────────────────────
     property bool launcherOpen: false       // pinned-apps / launcher panel
     property bool storeOpen: false           // app-store panel
+    property bool placesOpen: false          // places / directories panel (Home, Desktop, … + pinned folders)
     property real launcherAnchorX: 200       // screen-local x of the launcher dock button (popup centers on it)
     property real storeAnchorX: 200          // screen-local x of the store dock button
+    property real placesAnchorX: 200         // screen-local x of the places dock button
 
     // ── System-tray context menu (themed, rendered by TrayMenu.qml) ─────────────
     property bool trayMenuOpen: false
@@ -69,6 +71,27 @@ QtObject {
         g._pinWriter.command = ["sh", "-c", "cat > \"$HOME/.config/quickshell/pinned-apps.json\" <<'QS_EOF'\n" + JSON.stringify(a) + "\nQS_EOF\n"]
         g._pinWriter.running = false; g._pinWriter.running = true
     }
+    // ── Pinned places (folder paths; persisted in places.json) ────────────────
+    // The Places panel always shows the standard XDG dirs; these are the EXTRA
+    // folders the user pinned. Same pattern as pinnedApps.
+    property var pinnedPlaces: []
+    function isPinnedPlace(p) { return (g.pinnedPlaces || []).indexOf(p) >= 0 }
+    function togglePinPlace(p) {
+        if (!p) return
+        var a = (g.pinnedPlaces || []).slice()
+        var i = a.indexOf(p)
+        if (i >= 0) a.splice(i, 1); else a.push(p)
+        g.pinnedPlaces = a
+        g._placesWriter.command = ["sh", "-c", "cat > \"$HOME/.config/quickshell/places.json\" <<'QS_EOF'\n" + JSON.stringify(a) + "\nQS_EOF\n"]
+        g._placesWriter.running = false; g._placesWriter.running = true
+    }
+    property Process _placesWriter: Process {}
+    property Process _placesLoad: Process {
+        running: true
+        command: ["sh", "-c", "cat \"$HOME/.config/quickshell/places.json\" 2>/dev/null"]
+        stdout: StdioCollector { onStreamFinished: { try { var j = JSON.parse(this.text); if (Array.isArray(j)) g.pinnedPlaces = j } catch (e) {} } }
+    }
+
     // ── CPU / memory sampling (shared by the RunCat in the bar + Control Center) ─
     property real cpuUsage: 0      // 0..1
     property real memUsage: 0      // 0..1

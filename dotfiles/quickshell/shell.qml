@@ -11,6 +11,7 @@ ShellRoot {
     Dock {}
     LauncherPanel {}
     AppStore {}
+    Places {}
     TrayMenu {}
     Spotlight {}
     ControlCenter {}
