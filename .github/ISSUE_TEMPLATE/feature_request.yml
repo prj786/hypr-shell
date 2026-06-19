@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest a component, behaviour, or polish
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the need?
+      description: What are you trying to do that the DE doesn't support well today?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed solution
+      description: How might it work? Screenshots / references welcome.
+  - type: markdown
+    attributes:
+      value: |
+        Note: hypr-shell is **opinionated and Arch-only** by design, and deliberately
+        avoids macOS-clone aesthetics where they conflict with its own identity.
+        Requests that fit that scope are most likely to land.

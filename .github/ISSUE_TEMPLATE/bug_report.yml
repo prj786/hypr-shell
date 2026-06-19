@@ -1,0 +1,64 @@
+name: Bug report
+description: Something in the desktop is broken or misbehaving
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing hypr-shell (**alpha**). Please skim the **Known limitations**
+        in the README first — some behaviour is intentional (the screen stays on while
+        idle on the `xe` GPU, idle-suspend only on battery, low-battery auto-suspend).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What went wrong, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Shell — bar / dock / launcher / notifications / control center / settings
+        - Lock / idle / power / battery
+        - Greeter / boot splash
+        - Theming / appearance
+        - Install (install.sh / packages)
+        - Apps / default-app handling
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU / driver
+      placeholder: "Intel Arc 140V (xe) · AMD · NVIDIA · VM (virtio)"
+  - type: input
+    id: version
+    attributes:
+      label: hypr-shell version
+      description: "Settings → sidebar, or `cat ~/hypr-shell/VERSION`"
+      placeholder: "0.1.0-alpha"
+  - type: textarea
+    id: check
+    attributes:
+      label: "Output of: bash install.sh --check-only"
+      render: shell
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: "e.g. `journalctl --user -u hypr-shell.service -b`, the shell's `qs log`, or `hyprctl` output"
+      render: shell

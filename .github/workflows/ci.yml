@@ -1,0 +1,51 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: shellcheck (install pipeline + scripts)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          severity: error          # only hard errors fail the build (not style nits)
+        env:
+          # install.sh sources lib/*.sh by relative path; don't fail on "can't follow".
+          SHELLCHECK_OPTS: -e SC1090 -e SC1091
+
+  lua:
+    name: lua syntax (hyprland config)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends lua5.4
+      - name: luac -p
+        run: |
+          cd dotfiles/hypr
+          luac5.4 -p hyprland.lua colors.lua
+          echo "lua config: syntax OK"
+
+  qmldir:
+    name: qmldir entries resolve
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: every qmldir component points at a real file
+        run: |
+          cd dotfiles/quickshell
+          fail=0
+          # last field of each component line is the .qml file
+          for f in $(awk '/\.qml$/{print $NF}' qmldir); do
+            [ -f "$f" ] || { echo "::error::qmldir references missing file: $f"; fail=1; }
+          done
+          # and every top-level component instantiated in shell.qml is registered
+          exit $fail

@@ -10,7 +10,7 @@ QtObject {
     // Project version — the shell's runtime copy. Keep in sync with the repo-root
     // VERSION file (the canonical source used for git tags / releases). Semver, with
     // an -alpha/-beta pre-release suffix until the first stable cut.
-    readonly property string version: "0.1.0-alpha"
+    readonly property string version: "0.2.0-alpha"
 
     property bool controlOpen: false      // the macOS-style control centre panel
     property bool dnd: false               // Do Not Disturb (suppresses toasts)

@@ -2,6 +2,14 @@
   <img src="system/branding/hypr-shell-logo.png" width="240" alt="hypr-shell logo — a line-art scallop shell in a ring above the hypr-shell wordmark">
 </p>
 
+<p align="center">
+  <a href="https://github.com/prj786/hypr-shell/releases"><img src="https://img.shields.io/github/v/release/prj786/hypr-shell?include_prereleases&sort=semver&label=release&color=8fbce0" alt="release"></a>
+  <a href="https://github.com/prj786/hypr-shell/actions/workflows/ci.yml"><img src="https://github.com/prj786/hypr-shell/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
+  <img src="https://img.shields.io/badge/distro-Arch%20only-1793d1" alt="Arch only">
+  <img src="https://img.shields.io/badge/session-Wayland-7fb1da" alt="Wayland">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/prj786/hypr-shell?color=blue" alt="license: GPL-2.0"></a>
+</p>
+
 # hypr-shell — a macOS-style Hyprland + Quickshell desktop (Arch)
 
 An opinionated, installable desktop environment for **Arch Linux**: **Hyprland**
@@ -27,6 +35,17 @@ suffix until the first stable cut. The canonical version lives in the repo-root
 **`VERSION`** file; the shell mirrors it in `dotfiles/quickshell/Globals.qml`
 (`Globals.version`, shown in the Settings sidebar). Releases are git tags
 (`vX.Y.Z`). Bump both on release.
+
+## Screenshots
+
+|  |  |
+|---|---|
+| ![Launcher (Spotlight)](docs/media/launcher.png) | ![Control Center](docs/media/control-center.png) |
+| ![Settings](docs/media/settings.png) | ![App Store](docs/media/app-store.png) |
+
+<sub>Captured from the test harness — the **accent is configurable** (Settings → Theme),
+and the App Store lists AUR results when `paru` is present. Animated demos go in
+`docs/media/`; regenerate any of this with `docs/capture.sh`.</sub>
 
 ## Quick start
 
@@ -155,6 +174,27 @@ The `xe` kernel driver has a DPMS-resume bug that can strand a black screen, so 
 shipped `hypridle.conf` locks but **never powers the panel off**. If the iGPU ever
 tears or hangs, log in once with `DE_SOFTWARE_RENDER=1` set (see
 `dotfiles/hypr/start-hyprland.sh`).
+
+## Roadmap
+
+**Shipped (`0.1.0-alpha`)** — Hyprland + Lua config, top bar, dock, launcher
+(Spotlight), native notifications, control center, settings app, session lock, OSD,
+clipboard history, polkit agent, system tray, screenshots, XDG portals, greeter,
+Plymouth boot splash + welcome splash, traditional-GTK app stack with one-file
+default-app management, live theming + accent, shell crash-respawn, idle-suspend +
+low-battery safety.
+
+**Next**
+
+- [ ] Multi-monitor hotplug hardening (clean reflow on plug/unplug)
+- [ ] Input method (IME) for CJK / complex scripts
+- [ ] External-monitor brightness (DDC/CI)
+- [ ] Polished demo GIFs in the README
+- [ ] Wider real-hardware testing (beyond Lunar Lake + the VM)
+- [ ] A GitHub Project board for public tracking
+
+Work is tracked in [Issues](https://github.com/prj786/hypr-shell/issues) and
+[Discussions](https://github.com/prj786/hypr-shell/discussions).
 
 ## Known limitations (alpha)
 
