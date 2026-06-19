@@ -38,14 +38,16 @@ suffix until the first stable cut. The canonical version lives in the repo-root
 
 ## Screenshots
 
-|  |  |
-|---|---|
-| ![Launcher (Spotlight)](docs/media/launcher.png) | ![Control Center](docs/media/control-center.png) |
-| ![Settings](docs/media/settings.png) | ![App Store](docs/media/app-store.png) |
+<p align="center"><img src="docs/media/de.png" width="820" alt="hypr-shell desktop — top bar, dock, clean dark workspace"></p>
 
-<sub>Captured from the test harness — the **accent is configurable** (Settings → Theme),
-and the App Store lists AUR results when `paru` is present. Animated demos go in
-`docs/media/`; regenerate any of this with `docs/capture.sh`.</sub>
+| | |
+|---|---|
+| **Spotlight** — fuzzy app / file search<br><img src="docs/media/search-bar.png" alt="Spotlight search"> | **Window overview** — spaces & open windows<br><img src="docs/media/overview.png" alt="Window overview"> |
+| **App launcher** — pinned apps from the dock<br><img src="docs/media/app-launcher.png" alt="App launcher"> | **Control Center**<br><img src="docs/media/control-center.png" alt="Control Center"> |
+| **Settings**<br><img src="docs/media/settings.png" alt="Settings app"> | **App installer** — pacman + AUR<br><img src="docs/media/app-installer.png" alt="App installer"> |
+| **Clipboard history**<br><img src="docs/media/clipboard-history.png" alt="Clipboard history"> | **Dock**<br><img src="docs/media/dock.png" alt="Dock"> |
+
+<sub>The accent is configurable (Settings → Theme). Regenerate any of these with `docs/capture.sh`.</sub>
 
 ## Quick start
 
