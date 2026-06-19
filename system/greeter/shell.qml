@@ -128,6 +128,16 @@ FloatingWindow {
         // close the session menu on an outside click
         MouseArea { anchors.fill: parent; enabled: win.sessionMenuOpen; onClicked: win.sessionMenuOpen = false }
 
+        // ── brand mark, top-centre (installed beside this config as logo.png) ──
+        Image {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top; anchors.topMargin: 64
+            source: Qt.resolvedUrl("logo.png")
+            sourceSize.width: 256; sourceSize.height: 256
+            width: 76; height: 76; smooth: true; opacity: 0.9
+            visible: status === Image.Ready
+        }
+
         // ── centred stack: avatar · name · password ──
         Column {
             anchors.centerIn: parent

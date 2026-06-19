@@ -52,6 +52,14 @@ Scope {
                     anchors.centerIn: parent
                     spacing: 8
 
+                    // brand mark (line-art shell), shipped in assets/logo.png
+                    Image {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        source: Qt.resolvedUrl("assets/logo.png")
+                        sourceSize.width: 256; sourceSize.height: 256
+                        width: 110; height: 110; smooth: true
+                        visible: status === Image.Ready
+                    }
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "Welcome"

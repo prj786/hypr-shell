@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="system/branding/hypr-shell-logo.png" width="240" alt="hypr-shell logo — a line-art scallop shell in a ring above the hypr-shell wordmark">
+</p>
+
 # hypr-shell — a macOS-style Hyprland + Quickshell desktop (Arch)
 
 An opinionated, installable desktop environment for **Arch Linux**: **Hyprland**
