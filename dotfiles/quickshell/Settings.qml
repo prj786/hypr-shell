@@ -518,6 +518,12 @@ Scope {
                         Text { anchors.centerIn: parent; text: root.g(0xF0156); font.family: Theme.fontMono; font.pixelSize: 14; color: Theme.fg }
                         MouseArea { id: xMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Globals.settingsOpen = false }
                     }
+                    // version badge (bottom-right of the sidebar)
+                    Text {
+                        anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 16
+                        text: "hypr-shell " + Globals.version
+                        color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10
+                    }
                 }
                 Rectangle { width: 1; height: parent.height; color: Theme.stroke }
                 Item {

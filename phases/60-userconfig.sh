@@ -18,10 +18,17 @@ phase_userconfig() {
         run update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
     fi
 
-    # Default apps. _mime <desktop> <mimes…> (looks in both system + user app dirs).
+    # Default apps. _mime <desktop> <mimes…> — sets each mime's default handler.
+    # WARNS (not a silent skip) when the desktop file is missing: a wrong/renamed
+    # id would otherwise leave the *previous* default in place (e.g. an uninstalled
+    # KDE app from an earlier install), and a dead default = double-click in the
+    # file manager opens nothing. The warning surfaces the bad id in the log.
     _mime() {
         local d="$1"; shift
-        [ -r "/usr/share/applications/$d" ] || [ -r "$HOME/.local/share/applications/$d" ] || return 0
+        if [ ! -r "/usr/share/applications/$d" ] && [ ! -r "$HOME/.local/share/applications/$d" ]; then
+            warn "default-apps: $d not installed — no handler set for: $*"
+            return 0
+        fi
         local m; for m in "$@"; do run xdg-mime default "$d" "$m"; done
     }
     if command -v xdg-mime >/dev/null 2>&1; then
@@ -43,6 +50,16 @@ phase_userconfig() {
     # are current (covers Fresh, which we copied into the user apps dir above).
     if command -v update-desktop-database >/dev/null 2>&1; then
         run update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+    fi
+
+    # Verify: print what the common types now resolve to. If any row shows a dead
+    # handler (e.g. a leftover org.kde.*.desktop that's no longer installed),
+    # double-click won't open it — and this surfaces it instead of failing silently.
+    if command -v xdg-mime >/dev/null 2>&1 && [ "${DRY_RUN:-0}" != "1" ]; then
+        info "default handlers (double-click targets):"
+        for t in inode/directory text/plain image/png image/jpeg application/pdf video/mp4 application/zip; do
+            printf '    %-20s → %s\n' "$t" "$(xdg-mime query default "$t" 2>/dev/null || echo '(none)')"
+        done
     fi
 
     # Nemo right-click actions: "Compress…" / "Extract Here" via engrampa. Shipped

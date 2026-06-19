@@ -9,8 +9,7 @@ on save). Ported from the old Qtile bindings so most muscle memory carries over.
 | Shortcut | Action | Program |
 |---|---|---|
 | `Super` + `Return` | Terminal (auto-attaches themed tmux) | `kitty` |
-| `Super` + `Space` | **Spotlight** search (press again to close) | Quickshell |
-| `Super` + `D` | App launcher (same Spotlight) | Quickshell |
+| `Super` + `D` | **Spotlight** app launcher (press again to close) | Quickshell |
 | `Super` + `E` | File manager | `nemo` |
 | `Super` + `B` | Web browser | default browser (Settings → Default Apps) |
 | `Super` + `C` | Calendar | Quickshell popup |
@@ -24,8 +23,8 @@ on save). Ported from the old Qtile bindings so most muscle memory carries over.
 
 | Shortcut | Action |
 |---|---|
-| `Super` + `H` / `J` / `K` / `L` | Focus left / down / up / right |
-| `Super` + `Shift` + `H/J/K/L` | Move window in that direction |
+| `Super` + `H/J/K/L` *or* arrow keys | Focus left / down / up / right |
+| `Super` + `Shift` + `H/J/K/L` *or* arrows | Move window in that direction |
 | `Super` + `Ctrl` + `H/J/K/L` | Resize the focused window |
 | `Super` + `Shift` + `N` | Reset split ratio |
 | `Super` + `Q` | Close focused window |
@@ -65,8 +64,8 @@ on save). Ported from the old Qtile bindings so most muscle memory carries over.
 |---|---|
 | `Super` + `Ctrl` + `R` | Reload Hyprland config |
 | `Super` + `Ctrl` + `Q` | Quit Hyprland (log out) |
-| `Super` + `Shift` + `B` | Toggle the top bar (Waybar) |
-| `Super` + `Shift` + `Space` | Switch keyboard layout (US ↔ Georgian) |
+| `Super` + `Shift` + `B` | Toggle the top bar |
+| `Super` + `Space` | Switch keyboard layout (when more than one is configured) |
 | `Super` + `Alt` + `L` | Lock session |
 
 ## Media & hardware keys (no modifier)

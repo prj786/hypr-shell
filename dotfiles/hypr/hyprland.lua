@@ -203,8 +203,10 @@ hl.gesture({
 
 -- Launchers ------------------------------------------------------------------
 hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd(terminal))
-hl.bind(mainMod .. " + Space",  hl.dsp.exec_cmd(spotlight))  -- ⌘-Space Spotlight
-hl.bind(mainMod .. " + D",      hl.dsp.exec_cmd(spotlight))  -- same launcher (muscle memory)
+hl.bind(mainMod .. " + D",      hl.dsp.exec_cmd(spotlight))  -- Spotlight launcher
+-- Super+Space switches keyboard layout (cycles input sources). No-op with a single
+-- layout; add a second to input.kb_layout above to make it useful.
+hl.bind(mainMod .. " + Space",  hl.dsp.exec_cmd("hyprctl switchxkblayout current next"))
 hl.bind(mainMod .. " + E",      hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + B",      hl.dsp.exec_cmd(browser))
 hl.bind(mainMod .. " + C",      hl.dsp.exec_cmd(scripts .. "/calendar.sh"))
@@ -216,19 +218,27 @@ hl.bind(mainMod .. " + comma",  hl.dsp.exec_cmd("qs ipc call settings toggle")) 
 -- pressed during the hold), so Super+<x> combos don't pop the overview.
 hl.bind(mainMod .. " + Super_L", hl.dsp.exec_cmd("qs ipc call overview toggle"), { release = true })
 
--- Window focus (vim hjkl) ----------------------------------------------------
+-- Window focus (vim hjkl + arrow keys — arrows are aliases for hjkl) ----------
 hl.bind(mainMod .. " + H", hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + L", hl.dsp.focus({ direction = "right" }))
 hl.bind(mainMod .. " + J", hl.dsp.focus({ direction = "down" }))
 hl.bind(mainMod .. " + K", hl.dsp.focus({ direction = "up" }))
+hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))
+hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
+hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }))
+hl.bind(mainMod .. " + up",    hl.dsp.focus({ direction = "up" }))
 
--- Move the focused window (Shift + hjkl) — directional movewindow via hyprctl.
+-- Move the focused window (Shift + hjkl / Shift + arrows) — directional movewindow.
 -- Lua config: the /dispatch IPC evaluates its arg as Lua, so exec_cmd "hyprctl
 -- dispatch movewindow l" fails. Use the typed hl.dsp.* dispatchers directly.
 hl.bind(mainMod .. " + SHIFT + H", hl.dsp.window.move({ direction = "l" }))
 hl.bind(mainMod .. " + SHIFT + L", hl.dsp.window.move({ direction = "r" }))
 hl.bind(mainMod .. " + SHIFT + J", hl.dsp.window.move({ direction = "d" }))
 hl.bind(mainMod .. " + SHIFT + K", hl.dsp.window.move({ direction = "u" }))
+hl.bind(mainMod .. " + SHIFT + left",  hl.dsp.window.move({ direction = "l" }))
+hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.move({ direction = "r" }))
+hl.bind(mainMod .. " + SHIFT + down",  hl.dsp.window.move({ direction = "d" }))
+hl.bind(mainMod .. " + SHIFT + up",    hl.dsp.window.move({ direction = "u" }))
 
 -- Resize the focused window (Ctrl + hjkl) ------------------------------------
 hl.bind(mainMod .. " + CTRL + H", hl.dsp.window.resize({ x = -40, y = 0, relative = true }))

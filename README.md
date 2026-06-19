@@ -11,6 +11,18 @@ full DE.
 > detected but the service-enable phases are skipped — wire the equivalents into
 > your init manually.
 
+## Status
+
+**Alpha — `0.1.0-alpha`.** Usable and daily-drivable, but expect rough edges and
+breaking changes between versions. Tested on a minimal Arch install in a QEMU/KVM
+VM. Feedback and issues welcome.
+
+Versioning is **semver** (`MAJOR.MINOR.PATCH`) with an `-alpha`/`-beta` pre-release
+suffix until the first stable cut. The canonical version lives in the repo-root
+**`VERSION`** file; the shell mirrors it in `dotfiles/quickshell/Globals.qml`
+(`Globals.version`, shown in the Settings sidebar). Releases are git tags
+(`vX.Y.Z`). Bump both on release.
+
 ## Quick start
 
 ```sh
@@ -121,7 +133,7 @@ you drive the sudo/build steps.
 ## Repo layout
 
 ```
-install.sh  uninstall.sh  VERSIONS
+install.sh  uninstall.sh  VERSION (project semver)  VERSIONS (min tool versions)
 lib/      log.sh detect.sh pkg.sh deploy.sh
 packages/ common.list  aur.list
 phases/   00…90
