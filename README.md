@@ -184,16 +184,16 @@ Plymouth boot splash + welcome splash, traditional-GTK app stack with one-file
 default-app management, live theming + accent, shell crash-respawn, idle-suspend +
 low-battery safety.
 
-**Next**
+**Next** — live on the [project board](https://github.com/users/prj786/projects/5):
 
-- [ ] Multi-monitor hotplug hardening (clean reflow on plug/unplug)
-- [ ] Input method (IME) for CJK / complex scripts
-- [ ] External-monitor brightness (DDC/CI)
-- [ ] Polished demo GIFs in the README
-- [ ] Wider real-hardware testing (beyond Lunar Lake + the VM)
-- [ ] A GitHub Project board for public tracking
+- [ ] [Multi-monitor hotplug hardening](https://github.com/prj786/hypr-shell/issues/1) (clean reflow on plug/unplug)
+- [ ] [Input method (IME) support](https://github.com/prj786/hypr-shell/issues/2) for CJK / complex scripts
+- [ ] [External-monitor brightness (DDC/CI)](https://github.com/prj786/hypr-shell/issues/3)
+- [ ] [Polished demo GIFs in the README](https://github.com/prj786/hypr-shell/issues/4)
+- [ ] [Wider real-hardware testing](https://github.com/prj786/hypr-shell/issues/5) (beyond Lunar Lake + the VM)
 
-Work is tracked in [Issues](https://github.com/prj786/hypr-shell/issues) and
+Tracked on the [project board](https://github.com/users/prj786/projects/5) ·
+[Issues](https://github.com/prj786/hypr-shell/issues) ·
 [Discussions](https://github.com/prj786/hypr-shell/discussions).
 
 ## Known limitations (alpha)
