@@ -156,6 +156,32 @@ shipped `hypridle.conf` locks but **never powers the panel off**. If the iGPU ev
 tears or hangs, log in once with `DE_SOFTWARE_RENDER=1` set (see
 `dotfiles/hypr/start-hyprland.sh`).
 
+## Known limitations (alpha)
+
+Set expectations before you daily-drive it:
+
+- **The screen never powers off on idle** (only locks) — a deliberate workaround
+  for the Lunar Lake `xe` DPMS-resume bug above. On a laptop that means a lit,
+  locked panel while idle. Re-add a `dpms off` listener in `hypridle.conf` on
+  hardware without the bug.
+- **Idle behaviour, laptop on battery:** locks at 5 min, **suspends at 15 min**
+  (only on battery — never on a desktop or while plugged in). Delete the second
+  listener in `hypridle.conf` to disable.
+- **Low battery is handled automatically:** a warning at 20% and 10%, and a
+  **suspend at 5%** to protect unsaved work. Don't expect a second prompt — it
+  acts to avoid a hard power-off.
+- **The shell auto-respawns.** Quickshell runs as a `Restart=on-failure` systemd
+  user service (`hypr-shell.service`), so a crash brings the bar/dock/lock back
+  on its own. The lock uses the Wayland session-lock protocol, so the outputs
+  stay locked even if the shell dies while locked.
+- **The session lock is a new Quickshell component**, not battle-tested hyprlock.
+  It works, but it's the youngest security-relevant piece — report anything off.
+- **Multi-monitor hotplug is lightly tested.** Initial layouts and the
+  Settings → Displays pane work; plug/unplug reflow needs more mileage.
+- **No input method (IME) yet** — CJK / complex-script input isn't wired.
+- Tested on a minimal Arch install in a QEMU/KVM VM; real-hardware coverage is
+  still thin. Issues and PRs welcome.
+
 ## Credits
 
 Designed and built by **scubba**, pair-programmed with **[Claude Code](https://claude.com/claude-code)** (Anthropic's Claude) — which scaffolded the installer, the Quickshell components, and this documentation.

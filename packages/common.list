@@ -89,6 +89,7 @@ wl-clipboard
 hyprpicker
 brightnessctl
 playerctl
+libnotify                # notify-send — used by the low-battery watcher (Battery.qml)
 jq
 socat
 

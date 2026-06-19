@@ -25,4 +25,5 @@ ShellRoot {
     Overview {}
     Settings {}
     Splash {}
+    Battery {}
 }

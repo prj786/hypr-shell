@@ -38,8 +38,16 @@ fi
 # ── Wallpaper (swaybg) ───────────────────────────────────────────────────────
 "$HOME/.config/hypr/scripts/wallpaper.sh" >/dev/null 2>&1 &
 
-# ── Quickshell (the macOS-style QML shell: top bar + Spotlight launcher) ──────
-if command -v qs >/dev/null 2>&1 && ! pgrep -x qs >/dev/null 2>&1; then
+# ── Quickshell (the macOS-style QML shell: bar/dock/launcher/notifications/lock) ─
+# Run as a systemd USER SERVICE so it RESPAWNS on crash (Restart=on-failure) —
+# otherwise a shell crash kills the bar/dock/lock with no way back. The session
+# env was exported into the systemd manager above, so the service inherits
+# WAYLAND_DISPLAY etc. `start` is idempotent (no-op if already active), so a
+# `hyprctl reload` re-run never double-spawns. Falls back to a bare `qs &` only
+# if the unit isn't installed yet (first run before the next relogin).
+if command -v systemctl >/dev/null 2>&1 && systemctl --user cat hypr-shell.service >/dev/null 2>&1; then
+    systemctl --user start hypr-shell.service >/dev/null 2>&1 || true
+elif command -v qs >/dev/null 2>&1 && ! pgrep -x qs >/dev/null 2>&1; then
     qs >/dev/null 2>&1 &
 fi
 

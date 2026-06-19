@@ -57,10 +57,12 @@ deploy_dotfiles() {
     link_tree "$DOTREPO/dotfiles/tmux"       "$HOME/.config/tmux"
     link_tree "$DOTREPO/dotfiles/mise"       "$HOME/.config/mise"
 
-    # systemd user unit (the portal-activation fix) is copied, not symlinked —
-    # systemd resolves symlinks oddly for unit files and `daemon-reload` is cheap.
+    # systemd user units (portal-activation target + the shell respawn service)
+    # are copied, not symlinked — systemd resolves symlinks oddly for unit files
+    # and `daemon-reload` is cheap.
     run mkdir -p "$HOME/.config/systemd/user"
     run cp -f "$DOTREPO/systemd/hyprland-session.target" "$HOME/.config/systemd/user/"
+    run cp -f "$DOTREPO/systemd/hypr-shell.service"      "$HOME/.config/systemd/user/"
     run systemctl --user daemon-reload 2>/dev/null || true
-    ok "installed hyprland-session.target (portal activation)"
+    ok "installed hyprland-session.target + hypr-shell.service (shell respawn)"
 }

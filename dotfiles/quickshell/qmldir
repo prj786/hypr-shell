@@ -20,3 +20,4 @@ AppStore 1.0 AppStore.qml
 Places 1.0 Places.qml
 TrayMenu 1.0 TrayMenu.qml
 Splash 1.0 Splash.qml
+Battery 1.0 Battery.qml
