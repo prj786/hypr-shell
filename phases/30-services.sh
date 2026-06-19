@@ -46,9 +46,6 @@ phase_services() {
         sudo_run install -d /etc/xdg/quickshell/hyprshell-greeter
         sudo_run install -m 644 "$DOTREPO/system/greeter/shell.qml" /etc/xdg/quickshell/hyprshell-greeter/shell.qml \
             && ok "installed Quickshell greeter (/etc/xdg/quickshell/hyprshell-greeter)"
-        # brand mark shown at the top of the greeter (referenced as logo.png there)
-        [ -r "$DOTREPO/system/branding/hypr-shell-icon.png" ] && \
-            sudo_run install -m 644 "$DOTREPO/system/branding/hypr-shell-icon.png" /etc/xdg/quickshell/hyprshell-greeter/logo.png
 
         # Greeter wrapper — config.toml's command points here. A real script (not
         # an `env …` prefix, which greetd word-splits and mis-parses, nor a service

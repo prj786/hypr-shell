@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
@@ -184,40 +183,12 @@ Scope {
                     color: Theme.stroke
                 }
 
-                // ── LEFT: brand mark + "Search…" affordance + focused window title ──
+                // ── LEFT: "Search…" affordance + focused window title ──
                 Row {
                     anchors.left: parent.left
                     anchors.leftMargin: 10
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 10
-                    // hypr-shell brand mark → Control Center (macOS ⌘-menu analog).
-                    // White silhouette tinted to the bar foreground via MultiEffect
-                    // so it matches the other glyphs and follows the theme.
-                    Item {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 24; height: parent.height
-                        Image {
-                            id: brandImg
-                            anchors.centerIn: parent
-                            source: Qt.resolvedUrl("assets/logo-glyph.png")
-                            sourceSize.width: 96; sourceSize.height: 96
-                            width: 19; height: 19; fillMode: Image.PreserveAspectFit
-                            visible: false
-                        }
-                        MultiEffect {
-                            anchors.fill: brandImg
-                            source: brandImg
-                            colorization: 1.0
-                            colorizationColor: brandMa.containsMouse ? Theme.fg : Theme.fgSecondary
-                        }
-                        MouseArea {
-                            id: brandMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: Quickshell.execDetached(["qs", "ipc", "call", "control", "toggle"])
-                        }
-                    }
                     Item {
                         anchors.verticalCenter: parent.verticalCenter
                         width: 30
