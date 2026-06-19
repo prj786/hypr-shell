@@ -1,9 +1,9 @@
 #!/bin/bash
 # colorscheme.sh <dark|light> [accent-hex] — apply a light/dark appearance,
-# tinted with the shell accent, UNIFORMLY across the whole app ecosystem:
-#   • GTK 3/4 + libadwaita   (settings.ini + gsettings)
-#   • Qt 5/6                 (qt6ct/qt5ct, Breeze style + Fusion-palette fallback)
-#   • KDE / KF6              (kdeglobals: Fusion widgetStyle + full colour scheme)
+# tinted with the shell accent, across the whole app ecosystem:
+#   • GTK 3/4 + libadwaita   (settings.ini + gsettings)        ← PRIMARY (first-party apps)
+#   • Qt 5/6                 (qt6ct/qt5ct, Fusion + dark palette) ← any stray Qt app
+#   • KDE / KF6              (kdeglobals)                       ← only if you add a KDE app
 #   • Icon theme             (Reversal, accent-matched colour variant)
 #   • Cursor                 (Mocu, forced everywhere so it never flips per-toolkit)
 #
@@ -11,11 +11,9 @@
 # (install default). Writes config files always; gsettings is a best-effort live
 # nudge for already-running apps.
 #
-# NOT `set -e`: the GTK config is written first and kdeglobals (the KDE/Qt colours)
-# LAST, so any non-zero line in between (a stray test, a missing gsettings key)
-# would abort before kdeglobals and leave GTK dark but KDE apps on Breeze's light
-# default — the exact "GTK dark, KDE light" split. `set -u` only: every file is
-# written best-effort and the script always reaches the kdeglobals write.
+# First-party apps are GTK now, so the GTK config is what matters; the qt6ct/kdeglobals
+# writes just keep any stray Qt/KDE app you install dark too. `set -u` only (NOT -e),
+# so a stray non-zero line never aborts before every file is written.
 set -u
 
 MODE="${1:-dark}"
@@ -89,12 +87,10 @@ if command -v gsettings >/dev/null 2>&1; then
     gsettings set org.gnome.desktop.interface cursor-size  "$CURSOR_SIZE" 2>/dev/null || true
 fi
 
-# ── Qt (qt6ct + qt5ct) — fallback palette when the kde platform theme is absent ──
-# Primary Qt/KDE theming is the "kde" platform theme (plasma-integration,
-# QT_QPA_PLATFORMTHEME=kde in start-hyprland.sh): it reads the kdeglobals written
-# below and applies our colours to EVERY app incl. KColorScheme item views (the
-# Dolphin/Ark file panes). qt6ct's custom dark palette here is just a fallback for
-# when plasma-integration isn't installed. Style is Fusion (set in kdeglobals).
+# ── Qt (qt6ct + qt5ct) — dark Fusion palette for any stray Qt app ──
+# First-party apps are GTK; this just keeps a Qt app you install (and the Quickshell
+# shell's own Qt dialogs) on a dark palette instead of blinding white. Style = Fusion
+# (QT_QPA_PLATFORMTHEME=qt6ct is set in start-hyprland.sh).
 COLORS="$CFG/qt6ct/colors"
 mkdir -p "$COLORS"
 cat > "$COLORS/hyprshell-dark.conf" <<EOF
@@ -122,11 +118,10 @@ style=Fusion
 EOF
 done
 
-# ── KDE / KF6 (Dolphin, Ark, Gwenview, Okular, Kate) — kdeglobals ──
-# KColorScheme-aware KDE apps read these [Colors:*] groups (incl. View, the
-# Dolphin file-pane). With the Fusion style the QPalette already carries the dark
-# colours, so this is belt-and-suspenders; still written in full so nothing falls
-# back to a light default. Accent = Selection + Decoration*.
+# ── KDE / KF6 fallback — kdeglobals (only matters if you add a KDE app) ──
+# We ship no KDE apps, but writing this keeps any KColorScheme-aware app you install
+# later dark (incl. its item views) instead of falling back to a light default.
+# Accent = Selection + Decoration*.
 if [ "$MODE" = "dark" ]; then
     C_WIN="42,42,42";  C_WINA="36,36,36";  C_VIEW="30,30,30";  C_VIEWA="36,36,36"
     C_BTN="45,45,45";  C_FG="220,220,220";  C_FGI="130,130,130"; C_TIP="45,45,45"
@@ -171,10 +166,8 @@ EOF
     echo "DecorationFocus=$A"; echo "DecorationHover=$A"
 } > "$CFG/kdeglobals"
 
-# ── live update: nudge already-running KDE apps to re-read kdeglobals ──
-# plasma-integration file-watches kdeglobals, so a colour/accent change usually
-# recolours running KDE apps on its own; this legacy KGlobalSettings signal is a
-# best-effort extra for apps that listen for it. Harmless if nothing receives it.
+# ── live update: nudge any already-running KDE app to re-read kdeglobals ──
+# Legacy KGlobalSettings signal; a harmless no-op when no KDE app is listening.
 if command -v dbus-send >/dev/null 2>&1; then
     dbus-send --session --type=signal /KGlobalSettings org.kde.KGlobalSettings.notifyChange int32 0 int32 0 2>/dev/null || true
 fi

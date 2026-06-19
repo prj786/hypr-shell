@@ -13,19 +13,18 @@ export DESKTOP_SESSION=hyprland
 # ── Toolkit theming env — MUST be exported HERE, before `exec Hyprland`, not only
 #    via hl.env() in hyprland.lua. hl.env applies to Hyprland's children, but its
 #    propagation is unreliable for apps launched on-demand, and the symptom is a
-#    Qt/KDE app (Dolphin) that shows the right ICONS but a WHITE palette because
-#    the platform theme never reached it. Exporting here puts these in the real
-#    process environment of Hyprland AND every descendant, however it's spawned.
-#    Keep in sync with scripts/colorscheme.sh (writes the kdeglobals + qt6ct.conf
-#    the platform theme reads) and ~/.icons/default (cursor inheritance).
+#    GTK or Qt app that comes up with a WHITE palette because the theme env never
+#    reached it. Exporting here puts these in the real process environment of
+#    Hyprland AND every descendant, however it's spawned. Keep in sync with
+#    scripts/colorscheme.sh (writes the GTK settings.ini + qt6ct/kdeglobals fallback)
+#    and ~/.icons/default (cursor inheritance).
 export QT_QPA_PLATFORM="wayland;xcb"
-# "kde" platform theme (from plasma-integration) reads ~/.config/kdeglobals and
-# applies our dark colours + accent to EVERY KDE/Qt app — including the item
-# views (Dolphin/Ark file panes) that qt6ct/Fusion alone leave white, because
-# KDE apps colour those via KColorScheme, which only the kde platform theme feeds.
-# The widget style comes from kdeglobals ([KDE] widgetStyle=Fusion), so no
-# QT_STYLE_OVERRIDE needed. (qt6ct stays installed as a fallback if this is absent.)
-export QT_QPA_PLATFORMTHEME=kde
+# First-party apps are GTK now (Nemo/Engrampa/Zathura/imv), themed via GTK below.
+# qt6ct is just a fallback so any stray Qt app you install gets a dark Fusion
+# palette instead of blinding white — there are no KDE apps, so no plasma-integration
+# / "kde" platform theme. (The shell itself is Quickshell/Qt, themed by Theme.qml.)
+export QT_QPA_PLATFORMTHEME=qt6ct
+export QT_STYLE_OVERRIDE=Fusion
 export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 export QT_AUTO_SCREEN_SCALE_FACTOR=1
 export XCURSOR_THEME=Mocu-White-Right      # one cursor everywhere (XWayland + every toolkit)

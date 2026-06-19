@@ -990,7 +990,7 @@ Scope {
                             }
                         }
                     }
-                    Text { width: parent.width; text: "Light/dark + accent applies to GTK apps (Firefox/Zen) and Qt/KDE apps (Dolphin, Kate, Gwenview…). The shell stays dark. Open apps may need a relaunch to fully recolour."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; wrapMode: Text.Wrap }
+                    Text { width: parent.width; text: "Light/dark + accent applies to GTK apps (Nemo, Engrampa, Zathura, Firefox…) and any Qt app via the qt6ct fallback. The shell stays dark. Open apps may need a relaunch to fully recolour."; color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 11; wrapMode: Text.Wrap }
                     SectionTitle { text: "ACCENT COLOUR" }
                     Card {
                         Flow {

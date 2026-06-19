@@ -11,10 +11,11 @@ on save). Ported from the old Qtile bindings so most muscle memory carries over.
 | `Super` + `Return` | Terminal (auto-attaches themed tmux) | `kitty` |
 | `Super` + `Space` | **Spotlight** search (press again to close) | Quickshell |
 | `Super` + `D` | App launcher (same Spotlight) | Quickshell |
-| `Super` + `E` | File manager | `dolphin` |
-| `Super` + `B` | Web browser | `firefox` |
-| `Super` + `C` | Calendar | GNOME Calendar / popup |
-| `Super` + `N` | Toggle notification centre | `swaync` |
+| `Super` + `E` | File manager | `nemo` |
+| `Super` + `B` | Web browser | default browser (Settings → Default Apps) |
+| `Super` + `C` | Calendar | Quickshell popup |
+| `Super` + `,` | **Settings** | Quickshell |
+| `Super` + `N` | Toggle Control Center | Quickshell |
 
 > The bar + launcher are now **Quickshell** (`~/.config/quickshell/`). The Apple
 > glyph at the top-left opens Spotlight. (A Quickshell power menu is on the list.)

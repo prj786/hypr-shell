@@ -1,0 +1,9 @@
+[Nemo Action]
+# Right-click → "Compress…" — opens engrampa's create-archive dialog with the
+# selected files/folders, lets you name the archive and pick the format.
+Name=Compress…
+Comment=Create an archive from the selected items
+Exec=engrampa --add %F
+Icon-Name=package-x-generic
+Selection=NotNone
+Extensions=any;

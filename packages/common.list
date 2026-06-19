@@ -50,23 +50,22 @@ power-profiles-daemon
 kitty
 tmux
 
-# ── file manager + utility apps = Qt/KDE (no client-side titlebar; themed to
-#    match the shell via kdeglobals + qt6ct). GTK is kept for browsers/3rd-party
-#    apps below. With QT_WAYLAND_DISABLE_WINDOWDECORATION=1 (set in hyprland.lua)
-#    these render borderless — only the Hyprland accent border, macOS-clean. ────
-dolphin                 # file manager
-ark                     # archive manager (replaces file-roller)
-gwenview                # image viewer
-okular                  # PDF / document viewer
-kate                    # advanced text editor (GUI)
+# ── file manager + utility apps = traditional GTK (NOT libadwaita) ────────────
+#    Nemo/Engrampa/Zathura use a normal menubar/toolbar + server-side decorations,
+#    so under Hyprland (no titlebar) they render with ONLY our accent border — the
+#    no-titlebar macOS look — while theming via GTK (adw-gtk3 + gsettings, see
+#    scripts/colorscheme.sh). Unlike GNOME/libadwaita apps they have no unhideable
+#    client-side headerbar. Defaults are managed the standard way: ONE
+#    ~/.config/mimeapps.list, read natively by GIO — no KDE ksycoca cache, so
+#    "Open With" always sees the installed apps. ──────────────────────────────
+nemo                    # file manager (GTK3; custom right-click via .nemo_action)
+engrampa                # archive manager (GTK3, no headerbar) — create / extract
+imv                     # image viewer (Wayland-native, decorationless)
+zathura                 # PDF / document viewer (keyboard-driven, fully themeable)
+zathura-pdf-mupdf       # PDF backend for zathura
 mpv                     # video player (decorationless, themeless — ideal)
-kio-extras              # smb/sftp/mtp/etc protocols for Dolphin
-kio-fuse                # mount kio locations so non-KDE apps can read them
-kdegraphics-thumbnailers # PDF/image thumbnails in Dolphin
-ffmpegthumbs            # video thumbnails in Dolphin
-kimageformats           # avif/heif/jxl… support for Gwenview/Dolphin
-kde-cli-tools           # kioclient / kde-open (file associations, "open with")
-# mounting + GTK-app filesystem access (browsers, Electron apps still want gvfs)
+ffmpegthumbnailer       # video thumbnails in Nemo
+# mounting + filesystem access for GTK apps (trash, network, MTP; cloud via GOA later)
 gvfs
 gvfs-mtp
 gvfs-smb
@@ -74,9 +73,9 @@ udisks2
 unzip
 p7zip
 
-# ── browser + GUI editor ──────────────────────────────────────────────────────
-# Terminal IDE is Fresh (AUR: fresh-editor, see aur.list) — the default editor.
-# neovim/vim dropped. kate (above) stays as a GUI editor fallback.
+# ── browser + editor ──────────────────────────────────────────────────────────
+# Terminal IDE is Fresh (AUR: fresh-editor, see aur.list) — the default text/code
+# editor. neovim/vim dropped; no GUI text editor ships (Fresh covers it).
 firefox
 
 # ── desktop utilities ────────────────────────────────────────────────────────
@@ -92,17 +91,14 @@ playerctl
 jq
 socat
 
-# ── theming (GTK + Qt unified) + fonts ───────────────────────────────────────
+# ── theming (GTK primary) + fonts ────────────────────────────────────────────
 adw-gtk-theme
 gnome-themes-extra
-# plasma-integration = the "kde" Qt platform theme (QT_QPA_PLATFORMTHEME=kde). It
-# reads ~/.config/kdeglobals and pushes our dark colours + accent into EVERY KDE/Qt
-# app, including item views (the Dolphin/Ark file panes) that qt6ct alone can't reach.
-# NOT a Plasma desktop: pulls only KF6 libs (mostly already present via our KDE apps)
-# — no plasmashell/kwin/plasma-desktop/plasma-workspace.
-plasma-integration
-qt6ct                   # Qt5/6 fallback theme config (palette) when kde theme is absent
-kvantum
+# GTK is the primary toolkit now, so theming flows through adw-gtk3 + gsettings.
+# qt6ct just gives a dark Fusion palette to any stray Qt app you install (the shell
+# itself is Quickshell/Qt but themed by Theme.qml). No more plasma-integration / kde
+# platform theme — we ship no KDE apps.
+qt6ct
 papirus-icon-theme      # fallback icon set (Reversal inherits/falls back to it)
 librsvg                  # rsvg-convert — builds the Mocu cursor (phase 20 source step)
 xorg-xcursorgen          # xcursorgen — builds the Mocu cursor

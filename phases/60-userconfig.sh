@@ -25,24 +25,31 @@ phase_userconfig() {
         local m; for m in "$@"; do run xdg-mime default "$d" "$m"; done
     }
     if command -v xdg-mime >/dev/null 2>&1; then
-        _mime org.kde.dolphin.desktop  inode/directory
-        # Fresh IDE is the default text + code editor (GUI fallback: kate).
+        _mime nemo.desktop             inode/directory
+        # Fresh IDE is the default text + code editor (terminal IDE; no GUI editor ships).
         _mime fresh.desktop text/plain text/markdown text/html text/css text/javascript \
               application/json application/javascript application/xml text/xml application/x-yaml \
               text/x-python text/x-csrc text/x-chdr text/x-c++src application/x-shellscript \
               text/x-rust text/x-go
-        _mime org.kde.gwenview.desktop image/png image/jpeg image/gif image/webp image/bmp image/tiff
-        _mime org.kde.okular.desktop   application/pdf application/epub+zip
+        _mime imv.desktop              image/png image/jpeg image/gif image/webp image/bmp image/tiff
+        _mime org.pwmt.zathura.desktop application/pdf application/epub+zip
         _mime mpv.desktop              video/mp4 video/x-matroska video/webm video/quicktime audio/mpeg audio/flac
+        _mime engrampa.desktop         application/zip application/x-tar application/gzip application/x-xz \
+              application/x-bzip2 application/x-7z-compressed application/x-rar application/zstd application/x-compressed-tar
     fi
 
-    # Build the KDE service cache (ksycoca) so KDE apps (Dolphin's "Open With",
-    # file associations) actually SEE the installed .desktop apps and the defaults
-    # we just wrote to mimeapps.list. Without it KDE finds nothing and falls back
-    # to offering Discover for every unknown type. Safe to run from the installer;
-    # KDE also rebuilds it on demand, but seeding it now makes first launch correct.
-    if command -v kbuildsycoca6 >/dev/null 2>&1; then
-        run kbuildsycoca6 --noincremental 2>/dev/null || true
+    # GTK/GIO reads ~/.config/mimeapps.list directly — there is no KDE ksycoca cache
+    # to rebuild. Just refresh the desktop-file/mimeinfo cache so "Open With" lists
+    # are current (covers Fresh, which we copied into the user apps dir above).
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        run update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+    fi
+
+    # Nemo right-click actions: "Compress…" / "Extract Here" via engrampa. Shipped
+    # in the repo, copied to the user's Nemo actions dir (Nemo loads *.nemo_action).
+    if [ -d "$DOTREPO/system/nemo-actions" ]; then
+        run mkdir -p "$HOME/.local/share/nemo/actions"
+        run sh -c "cp -f '$DOTREPO/system/nemo-actions/'*.nemo_action '$HOME/.local/share/nemo/actions/' 2>/dev/null || true"
     fi
 
     # (Reversal icon theme + Mocu cursor are installed system-wide in phase 20.)
@@ -52,7 +59,7 @@ phase_userconfig() {
     # TTY; Quickshell re-applies it live at first login, then honours user-theme.json).
     local cs="$HOME/.config/quickshell/scripts/colorscheme.sh"
     if [ -r "$cs" ]; then
-        run sh "$cs" dark 0a84ff && ok "default appearance set to dark (GTK + Qt + KDE)"
+        run sh "$cs" dark 0a84ff && ok "default appearance set to dark (GTK + Qt fallback)"
     else
         info "colorscheme.sh not found yet (dotfiles not linked?) — skipping appearance default."
     fi

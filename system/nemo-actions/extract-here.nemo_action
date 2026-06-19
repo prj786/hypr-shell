@@ -1,0 +1,9 @@
+[Nemo Action]
+# Right-click an archive → "Extract Here" — engrampa extracts into the current
+# folder. Gated to common archive extensions so it only shows on archives.
+Name=Extract Here
+Comment=Extract the selected archive into this folder
+Exec=engrampa --extract-here %F
+Icon-Name=archive-extract
+Selection=NotNone
+Extensions=zip;tar;gz;tgz;bz2;tbz2;xz;txz;7z;rar;zst;tzst;lz;lzma;Z;

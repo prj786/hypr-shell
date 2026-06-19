@@ -16,7 +16,7 @@ local scripts  = home .. "/.config/hypr/scripts"
 
 -- Core programs (mirror the old settings.py defaults) ------------------------
 local terminal    = "kitty"
-local fileManager = "dolphin"
+local fileManager = "nemo"
 -- Open whatever the user set as the default web browser (Settings → Default Apps
 -- writes it via `xdg-settings set default-web-browser`). We resolve the .desktop
 -- and launch it with `gio launch` (glib2, always present); fall back to firefox.
@@ -47,13 +47,11 @@ hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" 
 -- ╭───────────────────────────────────────────────────────────────╮
 -- │ ENVIRONMENT                                                     │
 -- ╰───────────────────────────────────────────────────────────────╯
--- The toolkit theming env (QT_QPA_PLATFORMTHEME, XCURSOR_THEME, GDK_BACKEND, …)
--- is exported in start-hyprland.sh BEFORE `exec Hyprland`, not here. hl.env()
--- applies to Hyprland's children but its propagation to apps launched on-demand
--- is unreliable — the failure mode is Qt/KDE apps (Dolphin) getting the right
--- icons but a white palette (QT_QPA_PLATFORMTHEME never reached them, so the
--- Breeze style/kdeglobals colours weren't applied). Exporting in the wrapper
--- puts them in the real process environment of every descendant. See that file.
+-- The toolkit theming env (GTK_THEME, XCURSOR_THEME, GDK_BACKEND, the qt6ct
+-- fallback, …) is exported in start-hyprland.sh BEFORE `exec Hyprland`, not here.
+-- hl.env() applies to Hyprland's children but its propagation to apps launched
+-- on-demand is unreliable — exporting in the wrapper puts the vars in the real
+-- process environment of every descendant. See that file.
 
 
 -- ╭───────────────────────────────────────────────────────────────╮
@@ -320,7 +318,7 @@ hl.window_rule({
 for _, klass in ipairs({
     "pavucontrol", "org.pulseaudio.pavucontrol",
     "nm-connection-editor", "blueman-manager",
-    "org.gnome.Calculator", "org.kde.ark",
+    "org.gnome.Calculator", "engrampa",
 }) do
     hl.window_rule({ name = "float-" .. klass, match = { class = klass }, float = true })
 end

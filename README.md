@@ -58,40 +58,46 @@ genuinely safe and the whole thing is re-runnable.
 
 - **`packages/common.list`** — official-repo packages (real Arch names), installed
   with `pacman -S --needed`. Grouped: core session, greeter, audio, network,
-  bluetooth, power, terminals, **Qt/KDE utility apps** (Dolphin, Ark, Gwenview,
-  Okular, Kate, mpv), GTK browser/editors, utilities, theming + fonts, dev tooling,
-  gaming (multilib), tuning, build deps.
+  bluetooth, power, terminals, **GTK utility apps** (Nemo, Engrampa, imv, Zathura,
+  mpv), browser, utilities, theming + fonts, dev tooling, gaming (multilib),
+  tuning, build deps.
 - **`packages/aur.list`** — AUR packages (built via paru): just `gpu-screen-recorder`.
   Kept deliberately short. Theme/icon/cursor/accent are owned by the Quickshell
   Settings app (no `nwg-look` or other theme-settings GUI).
 - **GPU/Vulkan drivers** are *not* in the lists — phase 40 installs the right set
   for the detected vendor (intel / amd / nvidia).
 
-### Why Qt/KDE for utility apps, GTK for browsers
+### Why traditional GTK apps (not Qt/KDE, not libadwaita)
 
-The shipped file manager / viewers / editor are **Qt/KDE** (Dolphin, Gwenview,
-Okular, Kate, Ark) because, with `QT_WAYLAND_DISABLE_WINDOWDECORATION=1`, Qt apps
-render **with no titlebar** — just the Hyprland accent border — and theme exactly
-to the shell. GTK apps force a client-side headerbar (with its own window buttons)
-that can't be hidden, so GTK is kept only where the app dictates it (Firefox/Zen,
-Electron apps). **Appearance** (light/dark + accent) is applied across *every*
-toolkit by `dotfiles/quickshell/scripts/colorscheme.sh` and toggled live in
-**Settings → Theme → App appearance** (defaults to dark):
+The shipped first-party apps are **traditional GTK**: **Nemo** (file manager),
+**Engrampa** (archives), **imv** (images), **Zathura** (PDF/docs), **mpv** (video).
+These use a normal menubar/toolbar + server-side decorations, so under Hyprland —
+which draws **no titlebar**, just the accent border — they come up clean, the
+macOS-borderless look. The "GTK forces an unhideable headerbar" rule only applies
+to **GNOME/libadwaita** apps (Nautilus, GNOME Calendar, Evince); ordinary GTK apps
+don't, which is why we can have the no-titlebar aesthetic *and* GTK.
 
-- **GTK** — gsettings + `gtk-3.0/4.0/settings.ini` (adw-gtk3[-dark]).
-- **Qt / KDE** — the **`kde` platform theme** (`plasma-integration`,
-  `QT_QPA_PLATFORMTHEME=kde`) reads the full `kdeglobals` colour scheme we write
-  and applies our dark colours **and accent** to every KDE/Qt app — *including*
-  the item views (Dolphin/Ark file panes) that no env/style trick can reach,
-  because KDE apps colour those via `KColorScheme`. Widget style is **Fusion**.
-  `plasma-integration` pulls only KF6 libraries (mostly already present via the
-  KDE apps) — **no** `plasmashell`/`kwin`/`plasma-desktop`. qt6ct stays as a
-  fallback palette. Changing the accent rewrites `kdeglobals` and recolours
-  running KDE apps live (plasma-integration watches the file).
+Going all-GTK also fixes default-app management: **one `~/.config/mimeapps.list`**
+is the single source of truth, read natively by **GIO** — so "Open With" always
+sees your installed apps, with no KDE `ksycoca` cache to rebuild (the old Dolphin
+"offers to find it in Discover" problem is gone). Manage it from **Settings →
+Default Apps**. Right-click **Compress… / Extract Here** in Nemo are shipped as
+`system/nemo-actions/*.nemo_action` (calling engrampa).
+
+**Appearance** (light/dark + accent) is applied by
+`dotfiles/quickshell/scripts/colorscheme.sh` and toggled live in **Settings →
+Theme → App appearance** (defaults to dark):
+
+- **GTK** (primary) — gsettings + `gtk-3.0/4.0/settings.ini` (adw-gtk3[-dark]);
+  accent changes recolour GTK apps live.
+- **Qt** — `qt6ct`/`qt5ct` write a dark **Fusion** palette
+  (`QT_QPA_PLATFORMTHEME=qt6ct`) so any *stray* Qt app you install — and the
+  Quickshell shell's own Qt dialogs — stay dark instead of blinding white. No
+  `plasma-integration`/KDE platform theme: we ship no KDE apps. A `kdeglobals`
+  fallback is still written so a KDE app added later is dark too.
 - **Icons** — **Reversal**, auto-matched to the accent by hue (`Reversal-<colour>[-dark]`).
 - **Cursor** — **Mocu** (`mocu-xcursor`), forced via `XCURSOR_THEME`,
-  `~/.icons/default`, GTK, gsettings, qt6ct and kdeglobals so it never flips
-  between GTK and Qt apps.
+  `~/.icons/default`, GTK, gsettings and qt6ct so it never flips between toolkits.
 
 The **app installer** inside the DE (dock “store” button) searches and
 installs/removes via **pacman + AUR** (not Flatpak) — actions open a terminal so
