@@ -365,7 +365,8 @@ Scope {
                             onClicked: Globals.dnd = !Globals.dnd
                         }
                         Tile {
-                            ic: root.g(0xF0176); label: "Caffeine"; active: Globals.caffeine
+                            // eye open when awake, eye-off when idle-inhibitor is off
+                            ic: root.g(Globals.caffeine ? 0xF0208 : 0xF0209); label: "Insomnia"; active: Globals.caffeine
                             sub: Globals.caffeine ? "Awake" : "Off"
                             onClicked: Globals.caffeine = !Globals.caffeine
                         }

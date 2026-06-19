@@ -48,11 +48,6 @@ Scope {
                 anchors.margins: 20
                 spacing: 13
 
-                Image {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 46; height: 46; sourceSize.width: 92; sourceSize.height: 92
-                    source: agent.flow && agent.flow.iconName ? Quickshell.iconPath(agent.flow.iconName, "dialog-password") : Quickshell.iconPath("dialog-password")
-                }
                 Text {
                     width: parent.width; horizontalAlignment: Text.AlignHCenter
                     text: "Authentication Required"
