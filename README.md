@@ -222,6 +222,15 @@ Set expectations before you daily-drive it:
 - Tested on a minimal Arch install in a QEMU/KVM VM; real-hardware coverage is
   still thin. Issues and PRs welcome.
 
+## Bugs & feedback
+
+It's alpha — reports genuinely help. Pick the right door:
+
+- 🐛 **[Report a bug](https://github.com/prj786/hypr-shell/issues/new?template=bug_report.yml)** — the form asks for your GPU, version, and `install.sh --check-only` output. (Check [Known limitations](#known-limitations-alpha) first — some behaviour is intentional.)
+- 💡 **[Request a feature](https://github.com/prj786/hypr-shell/issues/new?template=feature_request.yml)**
+- 💬 **[Discussions](https://github.com/prj786/hypr-shell/discussions)** — questions, setup help, ideas, and a *Show and tell* for your own accent/wallpaper. Start at the [welcome post](https://github.com/prj786/hypr-shell/discussions/6).
+- 🔒 **Security** — report privately via the repo's **Security → Report a vulnerability** tab; see [SECURITY.md](SECURITY.md).
+
 ## Credits
 
 Designed and built by **scubba**, pair-programmed with **[Claude Code](https://claude.com/claude-code)** (Anthropic's Claude) — which scaffolded the installer, the Quickshell components, and this documentation.
