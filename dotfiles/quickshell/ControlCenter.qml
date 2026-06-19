@@ -631,6 +631,24 @@ Scope {
                                     Text { width: parent.width; visible: text.length > 0; text: modelData.body || ""; color: Theme.fgSecondary; font.family: Theme.fontText; font.pixelSize: 11; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText }
                                 }
                             }
+                            // click the card → go to the window that notified (switch
+                            // workspace + focus), then run its default action. Behind the
+                            // CloseBtn (declared after), so the ✕ still dismisses.
+                            MouseArea {
+                                anchors.fill: parent; anchors.rightMargin: 26
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    var n = modelData, cands = []
+                                    if (n.desktopEntry && String(n.desktopEntry).length) cands.push(String(n.desktopEntry))
+                                    if (n.appName && String(n.appName).length) cands.push(String(n.appName))
+                                    for (var c = 0; c < cands.length; c++) {
+                                        var seg = cands[c].split(".").pop().replace(/[^A-Za-z0-9]/g, "")
+                                        if (seg.length) { Quickshell.execDetached(["hyprctl", "dispatch", "focuswindow", "class:(?i).*" + seg + ".*"]); break }
+                                    }
+                                    try { if (n.actions) for (var i = 0; i < n.actions.length; i++) if (n.actions[i].identifier === "default") { n.actions[i].invoke(); break } } catch (e) {}
+                                    Globals.controlOpen = false
+                                }
+                            }
                             CloseBtn { anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 8; onPressed: modelData.dismiss() }
                         }
                     }

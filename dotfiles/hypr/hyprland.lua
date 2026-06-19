@@ -17,7 +17,12 @@ local scripts  = home .. "/.config/hypr/scripts"
 -- Core programs (mirror the old settings.py defaults) ------------------------
 local terminal    = "kitty"
 local fileManager = "dolphin"
-local browser     = "firefox"
+-- Open whatever the user set as the default web browser (Settings → Default Apps
+-- writes it via `xdg-settings set default-web-browser`). We resolve the .desktop
+-- and launch it with `gio launch` (glib2, always present); fall back to firefox.
+local browser     = 'b="$(xdg-settings get default-web-browser 2>/dev/null)"; '
+                 .. 'f="$HOME/.local/share/applications/$b"; [ -f "$f" ] || f="/usr/share/applications/$b"; '
+                 .. 'if [ -n "$b" ] && [ -f "$f" ]; then exec gio launch "$f"; else exec firefox; fi'
 local spotlight   = "qs ipc call spotlight toggle"  -- Quickshell launcher (QML)
 
 local mainMod = "SUPER"   -- the Super / Windows key
@@ -168,12 +173,11 @@ hl.animation({ leaf = "workspaces", enabled = true, speed = 5,    bezier = "ease
 -- ╰───────────────────────────────────────────────────────────────╯
 hl.config({
     input = {
-        -- US first (so Super-key binds resolve against it), Georgian second.
-        -- Toggle with Super+Shift+Space (see keybinds). GNOME-style *per-window*
-        -- memory needs the hyprland-per-window-layout daemon — installed by
-        -- install.sh; until then this is a global toggle.
-        kb_layout    = "us,ge",
-        kb_variant   = ",",
+        -- English (US) only by default. To add a second layout, append it here
+        -- (e.g. "us,ge") and a matching kb_variant, then re-enable the
+        -- Super+Shift+Space toggle bind below.
+        kb_layout    = "us",
+        kb_variant   = "",
         kb_model     = "",
         kb_options   = "",
         kb_rules     = "",
@@ -258,7 +262,8 @@ hl.bind(mainMod .. " + ALT + L",   hl.dsp.exec_cmd("qs ipc call lock lock"))  --
 -- doesn't also suspend. `l` flag = fire even while locked.
 hl.bind("switch:on:Lid Switch",  hl.dsp.exec_cmd(scripts .. "/lid.sh close"), { locked = true })
 hl.bind("switch:off:Lid Switch", hl.dsp.exec_cmd(scripts .. "/lid.sh open"),  { locked = true })
-hl.bind(mainMod .. " + SHIFT + Space", hl.dsp.exec_cmd("hyprctl switchxkblayout current next"))  -- US ↔ Georgian
+-- Layout toggle disabled: single (US) layout. Re-enable with a second kb_layout.
+-- hl.bind(mainMod .. " + SHIFT + Space", hl.dsp.exec_cmd("hyprctl switchxkblayout current next"))
 hl.bind(mainMod .. " + period",        hl.dsp.exec_cmd("qs ipc call clipboard toggle"))          -- clipboard + emoji
 
 -- Scratchpad (Hyprland "special" workspace) ----------------------------------

@@ -46,7 +46,7 @@ phase_postcheck() {
         _check "screenshot: grim can capture"         sh -c 'grim - 2>/dev/null | head -c1 | grep -q .'
     fi
     _check "keyring agent running"                pgrep -f gnome-keyring-daemon
-    _check "kb layout includes us,ge"             sh -c 'hyprctl getoption input:kb_layout 2>/dev/null | grep -q ge'
+    _check "kb layout: english (us)"              sh -c 'hyprctl getoption input:kb_layout 2>/dev/null | grep -qw us'
     _check "gaming: gamemode + steam installed"   sh -c 'pacman -Qq gamemode && pacman -Qq steam'
     _check "editor: Fresh (fresh) on PATH"        sh -c 'command -v fresh'
     _check "terminal: kitty installed"            sh -c 'command -v kitty'

@@ -27,6 +27,8 @@ Scope {
     // ── one background operation at a time (gated by the single password prompt) ──
     property string busyId: ""          // pkg id currently being installed/removed ("" = idle)
     property string busyKind: ""        // "install" | "remove"
+    property real   busyPct: -1         // 0..1 step progress (-1 = indeterminate, e.g. AUR build)
+    property string busyStat: ""        // live status line parsed from pacman/paru output
     property string opError: ""         // last failure message (shown as a banner)
     // pending op awaiting the password
     property string pendId: ""
@@ -83,6 +85,7 @@ Scope {
         root.busyKind = root.pendKind
         root.busyId = root.pendId
         root.opError = ""
+        root.busyPct = -1; root.busyStat = "Starting…"
         opProc.command = ["sh", "-c", root.opCommand(root.pendKind, root.pendId)]
         opProc.running = false; opProc.running = true
         root.pwOpen = false; root.pendId = ""; root.pendKind = ""
@@ -154,6 +157,25 @@ Scope {
         id: opProc
         stdinEnabled: true
         onStarted: { if (root.pwText.length) opProc.write(root.pwText + "\n"); root.pwText = "" }   // one stdin line → ASKPASS file, then drop the in-memory copy
+        // Live progress: pacman/paru print "(n/m) installing pkg" lines (and a
+        // retrieve phase). We parse the n/m counter into a percentage + status.
+        // AUR builds (makepkg) have no counter → indeterminate, labelled "Building".
+        stdout: SplitParser {
+            onRead: function (line) {
+                var s = String(line)
+                var m = s.match(/\(\s*(\d+)\/(\d+)\)\s+(\S+)/)
+                if (m) {
+                    var n = parseInt(m[1]), t = parseInt(m[2])
+                    if (t > 0) root.busyPct = Math.max(0, Math.min(1, n / t))
+                    root.busyStat = m[3].charAt(0).toUpperCase() + m[3].slice(1) + " " + n + "/" + t
+                    return
+                }
+                if (/Retrieving packages|downloading|Downloading/.test(s)) { root.busyStat = "Downloading…"; root.busyPct = -1; return }
+                if (/Making package|Building|makepkg|Starting build/i.test(s)) { root.busyStat = "Building from source…"; root.busyPct = -1; return }
+                if (/Resolving dependencies|Synchronizing package|Reading package|looking for conflicting/i.test(s)) { root.busyStat = "Resolving…"; return }
+                if (/checking keys|verifying|integrity|checking available/i.test(s)) { root.busyStat = "Verifying…"; return }
+            }
+        }
         stderr: StdioCollector { id: opErr }
         onExited: function (code, status) {
             if (code === 0) { root.opError = "" }
@@ -162,7 +184,7 @@ Scope {
                 root.opError = "Operation failed. "
                              + (e && e.length ? e : ("exit code " + code + " — wrong password?"))
             }
-            root.busyId = ""; root.busyKind = ""
+            root.busyId = ""; root.busyKind = ""; root.busyPct = -1; root.busyStat = ""
             qProc.running = true; helperProc.running = true     // refresh installed set + helper presence
         }
     }
@@ -184,8 +206,10 @@ Scope {
             else closeTimer.restart()
         } }
 
-        // click-outside closes — UNLESS a job is running (keep the status visible)
-        MouseArea { anchors.fill: parent; onClicked: if (root.busyId === "") Globals.storeOpen = false }
+        // click-outside closes. A running install/remove keeps going in the
+        // BACKGROUND (opProc lives on the Scope, not this window) and the chip
+        // re-appears next time the store is opened — so closing is always allowed.
+        MouseArea { anchors.fill: parent; onClicked: Globals.storeOpen = false }
 
         // small reusable spinner
         component Spinner: Item {
@@ -212,13 +236,16 @@ Scope {
             layer.effect: MultiEffect { shadowEnabled: true; shadowColor: Theme.shadow; shadowOpacity: 0.5; shadowBlur: 1.0; shadowVerticalOffset: 8; blurMax: 48 }
 
             MouseArea { anchors.fill: parent }
-            Keys.onEscapePressed: { if (root.pwOpen) root.cancelAsk(); else if (root.busyId === "") Globals.storeOpen = false }
+            Keys.onEscapePressed: { if (root.pwOpen) root.cancelAsk(); else Globals.storeOpen = false }
 
             Column {
                 anchors.fill: parent; anchors.margins: 14; spacing: 12
 
                 // ── header: title (left) + AUR status (right) ──
                 Item {
+                    // above later siblings so the running-job hover tooltip isn't
+                    // clipped behind the search box drawn under it.
+                    z: 5
                     width: parent.width; height: 26
                     Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "App Store"; color: Theme.fg; font.family: Theme.fontDisplay; font.pixelSize: Theme.fsLarge; font.weight: Font.Bold }
 
@@ -248,6 +275,50 @@ Scope {
                     }
                 }
 
+                // ── live install/remove progress (background job) ──
+                Rectangle {
+                    width: parent.width; visible: root.busyId !== ""
+                    height: visible ? 46 : 0; radius: Theme.radiusInner; color: Theme.elevated
+                    clip: true
+                    Column {
+                        anchors.left: parent.left; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                        anchors.margins: 9; spacing: 7
+                        Item {
+                            width: parent.width; height: 13
+                            Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width - pctT.width - 10; elide: Text.ElideRight
+                                text: (root.busyKind === "remove" ? "Removing " : "Installing ") + root.busyId
+                                color: Theme.fg; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold }
+                            Text { id: pctT; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                                text: root.busyStat + (root.busyPct >= 0 ? "  ·  " + Math.round(root.busyPct * 100) + "%" : "")
+                                color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: 10 }
+                        }
+                        // progress track: determinate fill when we have a step count,
+                        // otherwise an indeterminate sliding bar.
+                        Rectangle {
+                            id: track
+                            width: parent.width; height: 4; radius: 2; color: Theme.stroke; clip: true
+                            Rectangle {
+                                id: fill
+                                height: parent.height; radius: 2; color: Theme.accent
+                                width: root.busyPct >= 0 ? Math.max(6, track.width * root.busyPct) : track.width * 0.32
+                                x: root.busyPct >= 0 ? 0 : indet.pos
+                                Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                            }
+                            // indeterminate sweep (only runs while pct is unknown)
+                            QtObject {
+                                id: indet
+                                property real pos: 0
+                                SequentialAnimation on pos {
+                                    running: root.busyId !== "" && root.busyPct < 0
+                                    loops: Animation.Infinite
+                                    NumberAnimation { from: -track.width * 0.32; to: track.width; duration: 1100; easing.type: Easing.InOutQuad }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Rectangle {
                     width: parent.width; height: 36; radius: Theme.radiusInner
                     color: Theme.bg; border.color: storeIn.activeFocus ? Theme.accent : Theme.stroke; border.width: 1
@@ -263,7 +334,7 @@ Scope {
                             if (text.trim().length < 2) { root.results = []; root.searching = false; searchDebounce.stop() }
                             else searchDebounce.restart()
                         }
-                        Keys.onEscapePressed: if (root.busyId === "") Globals.storeOpen = false
+                        Keys.onEscapePressed: Globals.storeOpen = false
                         onAccepted: { searchDebounce.stop(); root.doSearch() }
                         Text { anchors.verticalCenter: parent.verticalCenter; visible: storeIn.text.length === 0; text: "Search apps to install or remove…"; color: Theme.fgDim; font: storeIn.font }
                     }
