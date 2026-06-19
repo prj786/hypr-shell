@@ -3,8 +3,9 @@
 An opinionated, installable desktop environment for **Arch Linux**: **Hyprland**
 (Wayland compositor, Lua-configured) + **Quickshell** (QML shell — bar, dock,
 launcher, notifications, control center, settings app, lock, OSD, clipboard, an
-app installer, and a RunCat). One script turns a minimal Arch install into the
-full DE.
+app installer, a RunCat, and a "Welcome `<user>`" session splash). A Plymouth boot
+splash hides the kernel/systemd text before the greeter. One script turns a
+minimal Arch install into the full DE.
 
 > **Arch only.** Package install assumes `pacman` + the **AUR**. Arch derivatives
 > (EndeavourOS, CachyOS, Garuda, Manjaro) should work. Artix (systemd-free) is
@@ -58,6 +59,7 @@ Settings; full keymap in `dotfiles/hypr/SHORTCUTS.md`.
 | 10 repos | enables **[multilib]** (Steam + 32-bit libs); bootstraps **paru** |
 | 20 packages | installs `packages/common.list` (pacman) + `packages/aur.list` (AUR) |
 | 30 services | pipewire/NM/bluetooth/ppd; installs **greetd + ReGreet** (fully-Wayland greeter) + the Wayland session entry |
+| 35 bootsplash | **Plymouth** boot splash (Arch logo + spinner): installs the theme, adds the `plymouth` initramfs hook, and adds `quiet splash …` to the kernel cmdline (systemd-boot/GRUB, auto-detected + backed up) so the boot `[OK]` text is hidden |
 | 40 gpu | per-vendor Vulkan + VAAPI drivers (Intel `xe` DPMS guard, NVIDIA suspend fix, AMD) |
 | 50 dotfiles | symlinks `~/.config/{hypr,quickshell,fresh,kitty,tmux,mise}` (backing up any existing), installs the session target |
 | 60 userconfig | default apps (**Fresh** as editor), `EDITOR=fresh`, **mise** Node toolchain (`mise install`), zram (laptops) |

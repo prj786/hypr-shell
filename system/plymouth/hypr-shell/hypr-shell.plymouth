@@ -1,0 +1,38 @@
+[Plymouth Theme]
+Name=hypr-shell
+Description=hypr-shell boot splash — Arch logo + spinner on a dark background
+ModuleName=two-step
+
+[two-step]
+# The throbber/animation frames are copied from the stock "spinner" theme at
+# install time (phase 35); only the watermark (our Arch logo) and the colours
+# below are ours. ImageDir is the installed theme dir.
+ImageDir=/usr/share/plymouth/themes/hypr-shell
+Font=Cantarell 12
+TitleFont=Cantarell Light 28
+# Spinner (throbber) just above centre; the Arch logo watermark sits above it.
+HorizontalAlignment=.5
+VerticalAlignment=.62
+WatermarkHorizontalAlignment=.5
+WatermarkVerticalAlignment=.40
+DialogHorizontalAlignment=.5
+DialogVerticalAlignment=.5
+TitleHorizontalAlignment=.5
+TitleVerticalAlignment=.5
+Transition=none
+TransitionDuration=0.0
+# Dark background to match the shell (near-black, no jarring flash to the greeter).
+BackgroundStartColor=0x121212
+BackgroundEndColor=0x121212
+ProgressBarBackgroundColor=0x404040
+ProgressBarForegroundColor=0xffffff
+MessageBelowAnimation=true
+
+[boot-up]
+UseEndAnimation=false
+
+[shutdown]
+UseEndAnimation=false
+
+[reboot]
+UseEndAnimation=false

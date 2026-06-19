@@ -39,7 +39,7 @@ export RUN_STAMP
 # --- load libraries + phases ---
 for f in lib/log.sh lib/detect.sh lib/pkg.sh lib/deploy.sh \
          phases/00-preflight.sh phases/10-repos.sh phases/20-packages.sh \
-         phases/30-services.sh phases/40-gpu.sh phases/50-dotfiles.sh \
+         phases/30-services.sh phases/35-bootsplash.sh phases/40-gpu.sh phases/50-dotfiles.sh \
          phases/60-userconfig.sh phases/90-postcheck.sh; do
     # shellcheck disable=SC1090
     . "$DOTREPO/$f"
@@ -58,6 +58,7 @@ phase_preflight
 phase_repos
 phase_packages
 phase_services
+phase_bootsplash
 phase_gpu
 phase_dotfiles
 phase_userconfig

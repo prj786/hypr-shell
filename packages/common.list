@@ -27,6 +27,7 @@ xdg-utils
 greetd
 greetd-regreet
 cage
+plymouth                # graphical boot splash (Arch logo + spinner); wired by phase 35
 
 # ── audio (PipeWire, low-latency-ready) ──────────────────────────────────────
 pipewire
