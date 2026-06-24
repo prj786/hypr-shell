@@ -10,7 +10,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/prj786/hypr-shell?color=blue" alt="license: GPL-2.0"></a>
 </p>
 
-# hypr-shell — a macOS-style Hyprland + Quickshell desktop (Arch)
+# hypr-shell —  Hyprland + Quickshell desktop (Arch)
 
 An opinionated, installable desktop environment for **Arch Linux**: **Hyprland**
 (Wayland compositor, Lua-configured) + **Quickshell** (QML shell — bar, dock,
