@@ -44,12 +44,31 @@ detect_gpu() {
     if command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt -q 2>/dev/null; then
         IS_VM=1
     fi
+    # Primary: scan sysfs — works with ZERO extra packages. detect runs at startup,
+    # BEFORE the package phase, so lspci (pciutils) may not be installed yet; relying
+    # on it alone silently yields GPU_VENDOR=unknown → no vendor drivers → software
+    # rendering. PCI class 0x03xxxx = display controller; the vendor id says who made it.
+    local d vnd cls
+    for d in /sys/bus/pci/devices/*/; do
+        [ -r "$d/class" ] && [ -r "$d/vendor" ] || continue
+        cls="$(cat "$d/class" 2>/dev/null)"
+        case "$cls" in 0x03*) ;; *) continue ;; esac
+        vnd="$(cat "$d/vendor" 2>/dev/null)"
+        case "$vnd" in
+            0x8086) case " $GPU_VENDOR " in *" intel "*) ;; *) GPU_VENDOR="$GPU_VENDOR intel" ;; esac ;;
+            0x1002) case " $GPU_VENDOR " in *" amd "*) ;;   *) GPU_VENDOR="$GPU_VENDOR amd" ;; esac ;;
+            0x10de) case " $GPU_VENDOR " in *" nvidia "*) ;; *) GPU_VENDOR="$GPU_VENDOR nvidia" ;; esac ;;
+        esac
+    done
+
+    # Secondary/confirmatory: lspci if present — also names paravirtual vGPUs so we
+    # force the mesa-only path in a VM. Deduped against the sysfs scan above.
     local out=""
     command -v lspci >/dev/null 2>&1 && out="$(lspci -nn 2>/dev/null | grep -iE 'vga|3d|display')"
     case "$out" in *Virtio*|*"Red Hat"*|*QXL*|*VMware*|*"Cirrus"*|*"Bochs"*) IS_VM=1 ;; esac
-    case "$out" in *[Ii]ntel*) GPU_VENDOR="$GPU_VENDOR intel" ;; esac
-    case "$out" in *AMD*|*ATI*|*Radeon*) GPU_VENDOR="$GPU_VENDOR amd" ;; esac
-    case "$out" in *NVIDIA*|*nVidia*) GPU_VENDOR="$GPU_VENDOR nvidia" ;; esac
+    case "$out" in *[Ii]ntel*)            case " $GPU_VENDOR " in *" intel "*) ;;  *) GPU_VENDOR="$GPU_VENDOR intel" ;; esac ;; esac
+    case "$out" in *AMD*|*ATI*|*Radeon*)  case " $GPU_VENDOR " in *" amd "*) ;;    *) GPU_VENDOR="$GPU_VENDOR amd" ;; esac ;; esac
+    case "$out" in *NVIDIA*|*nVidia*)     case " $GPU_VENDOR " in *" nvidia "*) ;; *) GPU_VENDOR="$GPU_VENDOR nvidia" ;; esac ;; esac
     GPU_VENDOR="$(echo "$GPU_VENDOR" | xargs)"
     # In a VM, the only correct GPU stack is mesa — force vendor to "virtual" so
     # phase 40 installs nothing vendor-specific (passing through a host Intel iGPU

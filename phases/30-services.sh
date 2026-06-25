@@ -15,8 +15,16 @@ phase_services() {
     command -v systemctl >/dev/null 2>&1 || { warn "no systemd — skipping service enablement (enable equivalents in your init)."; return 0; }
 
     # ── user audio stack (socket-activated) ──
-    run systemctl --user enable pipewire.socket pipewire-pulse.socket wireplumber.service 2>/dev/null \
-        || info "pipewire user units will come up with the session"
+    # Enable for the REAL user: under `sudo ./install.sh` a bare `systemctl --user`
+    # targets root's instance and no-ops for the actual account (mirrors phase 10).
+    if [ "$(id -u)" = "0" ] && [ -n "${SUDO_USER:-}" ]; then
+        run sudo -u "$SUDO_USER" "XDG_RUNTIME_DIR=/run/user/$(id -u "$SUDO_USER")" \
+            systemctl --user enable pipewire.socket pipewire-pulse.socket wireplumber.service 2>/dev/null \
+            || info "pipewire user units will come up with the session"
+    else
+        run systemctl --user enable pipewire.socket pipewire-pulse.socket wireplumber.service 2>/dev/null \
+            || info "pipewire user units will come up with the session"
+    fi
 
     # ── system services ──
     _enable_system NetworkManager.service

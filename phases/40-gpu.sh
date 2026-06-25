@@ -10,9 +10,9 @@ phase_gpu() {
     [ "${NO_PACKAGES:-0}" = "1" ] || {
         case " $GPU_VENDOR " in
             *" intel "*)
-                install_official vulkan-intel intel-media-driver
+                install_official vulkan-intel intel-media-driver intel-gpu-tools
                 [ "${GAMING:-0}" = "1" ] && install_official lib32-vulkan-intel
-                ok "Intel: ANV + iHD VAAPI installed." ;;
+                ok "Intel: ANV + iHD VAAPI + intel_gpu_top installed." ;;
         esac
         case " $GPU_VENDOR " in
             *" amd "*)

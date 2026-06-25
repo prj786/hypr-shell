@@ -31,7 +31,14 @@ phase_postcheck() {
     _check "portal: hyprland backend active"      systemctl --user is-active xdg-desktop-portal-hyprland.service
     _check "portal: gtk backend active"           systemctl --user is-active xdg-desktop-portal-gtk.service
     _check "audio: a default sink exists"         sh -c 'wpctl status 2>/dev/null | grep -qi sink'
+    _check "audio: SOF + UCM firmware present"     sh -c 'pacman -Qq sof-firmware && pacman -Qq alsa-ucm-conf'
     _check "network: NetworkManager active"       systemctl is-active NetworkManager.service
+    _check "power: power-profiles-daemon active"   systemctl is-active power-profiles-daemon.service
+    _check "bluetooth: service active"            systemctl is-active bluetooth.service
+    # Wi-Fi/GPU firmware lives in linux-firmware; usually pulled by the kernel, but a
+    # truly stripped base can lack it — note (don't fail) so a dead radio is explained.
+    if pkg_present linux-firmware; then _note "firmware: linux-firmware present"
+    else _note "firmware: linux-firmware NOT found — Wi-Fi/GPU may fail (sudo pacman -S linux-firmware)"; fi
     # CPU microcode: the vendor ucode package should be installed on real hardware.
     # In a VM the host applies microcode, so it's a neutral note, not a red ✗.
     if _in_vm; then

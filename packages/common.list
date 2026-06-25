@@ -34,8 +34,16 @@ pipewire
 pipewire-pulse
 pipewire-alsa
 pipewire-jack
+pipewire-audio          # SPA codec/bluetooth plugins — BT speakers/headsets expose a sink
 wireplumber
 pavucontrol
+# Audio FIRMWARE — modern Intel (Lunar Lake / Arc) and recent AMD laptops route
+# audio through the on-die SOF DSP; without sof-firmware the codec never loads and
+# there is NO sound on real hardware (a VM's virtio audio needs no firmware, which
+# is exactly why it works in a VM but is silent on metal).
+sof-firmware
+alsa-ucm-conf           # UCM routing profiles (speakers / headphone jack / mic)
+alsa-utils              # alsactl (restore mixer @ boot) + alsamixer / aplay -l diagnostics
 
 # ── network / bluetooth / power ──────────────────────────────────────────────
 networkmanager
@@ -124,7 +132,6 @@ ripgrep                 # fast search (rg)
 fd                      # fast file find
 fzf                     # fuzzy finder
 bat                     # syntax-highlighting pager
-podman                  # rootless containers
 
 # ── core GPU userspace (ALWAYS — the whole shell is GPU-accelerated) ──────────
 # 64-bit Mesa + the Vulkan loader are mandatory; the per-vendor ICDs/VAAPI are
@@ -132,6 +139,9 @@ podman                  # rootless containers
 # opt-in — see packages/gaming.list, installed only with `install.sh --gaming`.
 mesa
 vulkan-icd-loader
+pciutils                # lspci — GPU/driver introspection (phase 40 'in use: xe' guard)
+libva-utils             # vainfo — VAAPI verification (phase 90 postcheck, real HW)
+vulkan-tools            # vulkaninfo — Vulkan device verification (phase 90 postcheck)
 
 # ── system tuning ────────────────────────────────────────────────────────────
 zram-generator
