@@ -7,10 +7,10 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.Pipewire
 
-// Settings — a universal, themed settings window (Super+, · Control Center gear ·
-// Spotlight "Settings"). Sidebar nav + content. Panes: System/Diagnostics,
+// Settings — a universal, themed settings window (Super+, · Quick Settings gear ·
+// Launcher "Settings"). Sidebar nav + content. Panes: System/Diagnostics,
 // Displays, Networking, Default Apps, Keyboard, Shortcuts, Theme & Accent, User.
-// Mirrors ControlCenter.qml's structure; all colours from Theme.qml.
+// Mirrors QuickSettings.qml's structure; all colours from Theme.qml.
 //
 // Hyprland is Lua-configured, so live changes go through `hyprctl eval 'hl…'`
 // (plain `hyprctl keyword` is rejected). Persistent changes are written to

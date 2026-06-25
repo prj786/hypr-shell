@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`hypr-shell` is an installable, **Arch-Linux-only**, macOS-aesthetic desktop
+`hypr-shell` is an installable, **Arch-Linux-only**, clean dark desktop
 environment: **Hyprland** (Wayland compositor, configured in Lua) + **Quickshell**
-(a QML shell — bar, dock, launcher, notifications, control center, settings,
+(a QML shell — bar, dock, launcher, notifications, quick settings, settings,
 app store, lock, OSD). `install.sh` turns a minimal Arch install into the full DE.
 Read `README.md` for the user-facing rationale (it is the source of truth). The
 project is **Arch-only** end to end — no Fedora/COPR/`dnf`/GDM paths remain.
@@ -97,18 +97,18 @@ Cross-cutting mechanisms — understand these before touching any phase:
 ### Quickshell shell (`dotfiles/quickshell/`)
 
 `shell.qml`'s `ShellRoot` instantiates every top-level component (`Bar`, `Dock`,
-`ControlCenter`, `Settings`, `AppStore`, `Notifications`, …). Components are
+`QuickSettings`, `Settings`, `AppStore`, `Notifications`, …). Components are
 registered in `qmldir`. Two singletons tie everything together:
 
-- **`Globals.qml`** — shared mutable shell state (`controlOpen`, `settingsOpen`,
+- **`Globals.qml`** — shared mutable shell state (`quickSettingsOpen`, `settingsOpen`,
   `accentColor`, `version`, pinned lists, the live `NotificationServer`, …).
   In-shell toggles flip a `Globals` bool directly (no IPC round-trip).
 - **`Theme.qml`** — the palette/metrics; `accent` binds to `Globals.accentColor`
   so changing the accent recolours the whole shell live.
 
 External control (keybinds, scripts) uses **`qs ipc call <target> <fn>`** against an
-`IpcHandler { target: "<name>" }` in a component — targets: `bar clipboard control
-launcher lock osd overview places preview settings spotlight store`. Most expose
+`IpcHandler { target: "<name>" }` in a component — targets: `bar clipboard quicksettings
+launcher lock osd overview places preview settings applauncher store`. Most expose
 `toggle`/`show`/`hide`. Gotcha: `qs ipc call <t> show` collides with the `qs ipc
 show` subcommand and no-ops — bind to **`toggle`**.
 

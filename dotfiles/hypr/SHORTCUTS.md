@@ -9,15 +9,15 @@ on save). Ported from the old Qtile bindings so most muscle memory carries over.
 | Shortcut | Action | Program |
 |---|---|---|
 | `Super` + `Return` | Terminal (auto-attaches themed tmux) | `kitty` |
-| `Super` + `D` | **Spotlight** app launcher (press again to close) | Quickshell |
+| `Super` + `D` | **Launcher** — fuzzy app / file search (press again to close) | Quickshell |
 | `Super` + `E` | File manager | `nemo` |
 | `Super` + `B` | Web browser | default browser (Settings → Default Apps) |
 | `Super` + `C` | Calendar | Quickshell popup |
 | `Super` + `,` | **Settings** | Quickshell |
-| `Super` + `N` | Toggle Control Center | Quickshell |
+| `Super` + `N` | Toggle Quick Settings | Quickshell |
 
-> The bar + launcher are now **Quickshell** (`~/.config/quickshell/`). The Apple
-> glyph at the top-left opens Spotlight. (A Quickshell power menu is on the list.)
+> The bar + launcher are now **Quickshell** (`~/.config/quickshell/`). The search
+> glyph at the top-left opens the Launcher. (A Quickshell power menu is on the list.)
 
 ## Windows
 

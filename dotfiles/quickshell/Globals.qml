@@ -12,14 +12,14 @@ QtObject {
     // an -alpha/-beta pre-release suffix until the first stable cut.
     readonly property string version: "0.2.0-alpha"
 
-    property bool controlOpen: false      // the macOS-style control centre panel
+    property bool quickSettingsOpen: false  // the Quick Settings panel
     property bool dnd: false               // Do Not Disturb (suppresses toasts)
     property var server: null              // set by Notifications.qml (the live NotificationServer)
     property bool vpnActive: false         // any VPN connection up (bar shows a VPN glyph)
     property bool caffeine: false          // keep-awake: holds a wayland idle inhibitor (no lock/blank/sleep)
     property bool overviewOpen: false      // GNOME-style window overview (Super tapped alone)
     property bool clipboardOpen: false     // the clipboard-history / emoji popup (scissors icon)
-    property bool appMenuOpen: false       // the macOS-style app menu (bold app name in the bar)
+    property bool appMenuOpen: false       // the app menu (bold app name in the bar)
     property bool settingsOpen: false      // the Quickshell Settings window (Super+, or the CC gear)
     property real clipAnchorX: 40           // screen-local x of the scissors icon (clipboard opens under it)
     property real appAnchorX: 40            // screen-local x of the app-name (app menu opens under it)
@@ -27,7 +27,7 @@ QtObject {
     // ── User-chosen accent colour ─────────────────────────────────────────────
     // Single mutable source the Settings → Theme pane writes; Theme.accent binds to
     // it so the whole shell recolours live. Persisted to ~/.config/quickshell/
-    // user-theme.json and re-read here at startup (default = macOS system blue).
+    // user-theme.json and re-read here at startup (default = system blue).
     property color accentColor: "#0a84ff"
     property bool tintBorders: false        // mirror window border colour to the accent
 
@@ -97,7 +97,7 @@ QtObject {
         stdout: StdioCollector { onStreamFinished: { try { var j = JSON.parse(this.text); if (Array.isArray(j)) g.pinnedPlaces = j } catch (e) {} } }
     }
 
-    // ── CPU / memory sampling (shared by the RunCat in the bar + Control Center) ─
+    // ── CPU / memory sampling (shared by the RunCat in the bar + Quick Settings) ─
     property real cpuUsage: 0      // 0..1
     property real memUsage: 0      // 0..1
     property var _prevCpu: null

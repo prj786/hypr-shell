@@ -23,7 +23,7 @@ local fileManager = "nemo"
 local browser     = 'b="$(xdg-settings get default-web-browser 2>/dev/null)"; '
                  .. 'f="$HOME/.local/share/applications/$b"; [ -f "$f" ] || f="/usr/share/applications/$b"; '
                  .. 'if [ -n "$b" ] && [ -f "$f" ]; then exec gio launch "$f"; else exec firefox; fi'
-local spotlight   = "qs ipc call spotlight toggle"  -- Quickshell launcher (QML)
+local applauncher = "qs ipc call applauncher toggle"  -- Quickshell launcher (QML)
 
 local mainMod = "SUPER"   -- the Super / Windows key
 
@@ -31,7 +31,7 @@ local mainMod = "SUPER"   -- the Super / Windows key
 -- ╭───────────────────────────────────────────────────────────────╮
 -- │ MONITORS — https://wiki.hypr.land/Configuring/Basics/Monitors/  │
 -- ╰───────────────────────────────────────────────────────────────╯
--- Dual display, macOS-style with the external on the LEFT.
+-- Dual display, with the external on the LEFT.
 --   * DP-1 (Samsung 27", 2560x1440) anchored at the far left (0x0), scale 1.
 --   * eDP-1 (laptop, 2880x1800 HiDPI) auto-placed to its right, scale 2 → 1440
 --     logical px, so its left edge sits at x=2560 (DP-1's logical width).
@@ -61,7 +61,7 @@ hl.config({
     general = {
         gaps_in     = 6,
         gaps_out    = 14,
-        border_size = 1,           -- macOS has no chunky borders; the shadow carries the depth
+        border_size = 1,           -- no chunky borders; the shadow carries the depth
 
         -- Active border: Gruvbox yellow → orange gradient. Inactive: a quiet
         -- surface tone so unfocused windows recede.
@@ -82,8 +82,8 @@ hl.config({
         active_opacity   = 1.0,
         inactive_opacity = 0.97,  -- a hair of depth on unfocused windows
 
-        -- Big soft drop shadow — the single biggest "this looks like macOS" cue.
-        -- Large range, low alpha = the diffuse macOS shadow (not a hard outline).
+        -- Big soft drop shadow — the single biggest depth cue.
+        -- Large range, low alpha = a diffuse shadow (not a hard outline).
         shadow = {
             enabled      = true,
             range        = 26,
@@ -92,7 +92,7 @@ hl.config({
         },
 
         -- Frosted-glass blur behind translucent surfaces (the Quickshell bar,
-        -- the Spotlight launcher, swaync).
+        -- the Launcher, swaync).
         blur = {
             enabled  = true,
             size     = 6,
@@ -147,7 +147,7 @@ hl.config({
 -- the group keybinds and chrome. Workspace navigation lives in the bottom dock.
 
 
--- ── Animations: smooth, slightly snappy; workspaces slide like macOS Spaces ──
+-- ── Animations: smooth, slightly snappy; workspaces slide horizontally ───────
 hl.curve("easeOutQuint",   { type = "bezier", points = { {0.23, 1},    {0.32, 1} } })
 hl.curve("easeInOutCubic", { type = "bezier", points = { {0.65, 0.05}, {0.36, 1} } })
 hl.curve("linear",         { type = "bezier", points = { {0, 0},       {1, 1} } })
@@ -184,12 +184,12 @@ hl.config({
         sensitivity  = 0,          -- -1.0 .. 1.0, 0 = unmodified
 
         touchpad = {
-            natural_scroll = true, -- macOS-style "content follows fingers"
+            natural_scroll = true, -- "content follows fingers"
         },
     },
 })
 
--- Three-finger horizontal swipe → switch workspaces (macOS Spaces gesture).
+-- Three-finger horizontal swipe → switch workspaces.
 hl.gesture({
     fingers   = 3,
     direction = "horizontal",
@@ -203,15 +203,15 @@ hl.gesture({
 
 -- Launchers ------------------------------------------------------------------
 hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd(terminal))
-hl.bind(mainMod .. " + D",      hl.dsp.exec_cmd(spotlight))  -- Spotlight launcher
+hl.bind(mainMod .. " + D",      hl.dsp.exec_cmd(applauncher))  -- Launcher
 -- Super+Space switches keyboard layout (cycles input sources). No-op with a single
 -- layout; add a second to input.kb_layout above to make it useful.
 hl.bind(mainMod .. " + Space",  hl.dsp.exec_cmd("hyprctl switchxkblayout current next"))
 hl.bind(mainMod .. " + E",      hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + B",      hl.dsp.exec_cmd(browser))
 hl.bind(mainMod .. " + C",      hl.dsp.exec_cmd(scripts .. "/calendar.sh"))
-hl.bind(mainMod .. " + N",      hl.dsp.exec_cmd("qs ipc call control toggle"))  -- control centre
-hl.bind(mainMod .. " + comma",  hl.dsp.exec_cmd("qs ipc call settings toggle")) -- ⌘, Settings
+hl.bind(mainMod .. " + N",      hl.dsp.exec_cmd("qs ipc call quicksettings toggle"))  -- Quick Settings
+hl.bind(mainMod .. " + comma",  hl.dsp.exec_cmd("qs ipc call settings toggle")) -- Super+, Settings
 
 -- Super tapped ALONE → Overview (GNOME-style window switcher). `release` fires on key-up;
 -- with the modifier as its own key Hyprland only triggers it on a clean tap (no other key
@@ -254,7 +254,7 @@ hl.bind(mainMod .. " + CTRL + J", hl.dsp.window.resize({ x = 0,  y = 40, relativ
 hl.bind(mainMod .. " + Q",         hl.dsp.window.close())
 hl.bind(mainMod .. " + F",         hl.dsp.window.fullscreen({ mode = 0 }))  -- true fullscreen
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen({ mode = 1 }))  -- maximise
-hl.bind(mainMod .. " + V",         hl.dsp.window.float({ action = "toggle" }))  -- (moved off Space → Spotlight)
+hl.bind(mainMod .. " + V",         hl.dsp.window.float({ action = "toggle" }))  -- (moved off Space → Launcher)
 hl.bind(mainMod .. " + SHIFT + V", hl.dsp.window.pseudo())
 hl.bind(mainMod .. " + T",         hl.dsp.layout("togglesplit"))                       -- dwindle split
 hl.bind(mainMod .. " + Tab",         hl.dsp.window.cycle_next())
@@ -354,8 +354,8 @@ hl.window_rule({
 -- ╰───────────────────────────────────────────────────────────────╯
 -- ignore_alpha = 0.1 means only the actually-painted (translucent) panel gets
 -- blurred behind; the fully-transparent full-screen overlay around the
--- Spotlight panel is left clear (no whole-screen frost).
--- Spotlight is solid now (Theme.panel) — no blur/glass.
+-- Launcher panel is left clear (no whole-screen frost).
+-- Launcher is solid now (Theme.panel) — no blur/glass.
 -- Bar is solid now (Theme.bg) — no blur/glass.
 -- All Quickshell surfaces are solid now (colours from Theme.qml) — no blur/glass.
 

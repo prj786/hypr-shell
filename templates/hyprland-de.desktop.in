@@ -4,7 +4,7 @@
 # lists it. @EXEC@ is replaced with the per-user path to start-hyprland.sh at
 # install time.
 Name=Hyprland (DE)
-Comment=Hyprland with the macOS-style Quickshell desktop
+Comment=Hyprland with the Quickshell desktop
 Exec=@EXEC@
 Type=Application
 DesktopNames=Hyprland

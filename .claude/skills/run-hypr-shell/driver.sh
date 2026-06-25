@@ -14,7 +14,7 @@
 #
 # Usage:
 #   driver.sh up                 # start nested compositor + shell, wait for load
-#   driver.sh ipc <tgt> <fn> ..  # call a shell IpcHandler (settings|store|control|...)
+#   driver.sh ipc <tgt> <fn> ..  # call a shell IpcHandler (settings|store|quicksettings|...)
 #   driver.sh open <tgt> [png]   # toggle a surface, screenshot it (default: <tgt>.png)
 #   driver.sh shot [png]         # screenshot current nested output (default: shell.png)
 #   driver.sh targets            # list all IpcHandler targets/functions

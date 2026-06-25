@@ -4,7 +4,7 @@ import Quickshell.Wayland
 import Quickshell.Services.Polkit
 
 // Auth — a custom polkit authentication agent. Whenever something needs elevated
-// privileges (a "sudo"/admin password), this mac-style dialog appears instead of
+// privileges (a "sudo"/admin password), this dialog appears instead of
 // the default lxqt/gnome one. Enter the password for your (sudo) user.
 Scope {
     id: root

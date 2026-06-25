@@ -62,7 +62,7 @@ tmux
 # ── file manager + utility apps = traditional GTK (NOT libadwaita) ────────────
 #    Nemo/Engrampa/Zathura use a normal menubar/toolbar + server-side decorations,
 #    so under Hyprland (no titlebar) they render with ONLY our accent border — the
-#    no-titlebar macOS look — while theming via GTK (adw-gtk3 + gsettings, see
+#    no-titlebar borderless look — while theming via GTK (adw-gtk3 + gsettings, see
 #    scripts/colorscheme.sh). Unlike GNOME/libadwaita apps they have no unhideable
 #    client-side headerbar. Defaults are managed the standard way: ONE
 #    ~/.config/mimeapps.list, read natively by GIO — no KDE ksycoca cache, so

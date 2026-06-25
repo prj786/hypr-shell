@@ -19,7 +19,7 @@ set -u
 MODE="${1:-dark}"
 case "$MODE" in dark|light) ;; *) MODE=dark ;; esac
 
-# accent → 6 lowercase hex (fallback macOS blue) + decimal R,G,B
+# accent → 6 lowercase hex (fallback system blue) + decimal R,G,B
 ACC="$(printf '%s' "${2:-}" | tr -dc 'a-fA-F0-9' | tr 'A-F' 'a-f')"
 if [ "${#ACC}" -ge 6 ]; then ACC="${ACC: -6}"; else ACC="0a84ff"; fi
 AR=$((16#${ACC:0:2})); AG=$((16#${ACC:2:2})); AB=$((16#${ACC:4:2}))

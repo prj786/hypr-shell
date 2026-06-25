@@ -31,7 +31,7 @@ body:
     attributes:
       label: Area
       options:
-        - Shell — bar / dock / launcher / notifications / control center / settings
+        - Shell — bar / dock / launcher / notifications / Quick Settings / settings
         - Lock / idle / power / battery
         - Greeter / boot splash
         - Theming / appearance

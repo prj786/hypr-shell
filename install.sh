@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════════════════════════╗
 # ║  install.sh — turn a minimal base install into the Hyprland + Quickshell   ║
-# ║  macOS-style desktop. Arch Linux only (pacman + the AUR).                  ║
+# ║  Clean, borderless dark desktop. Arch Linux only (pacman + the AUR).       ║
 # ║                                                                            ║
 # ║  Usage:                                                                    ║
 # ║    bash install.sh                 full install (prompts before changes)   ║

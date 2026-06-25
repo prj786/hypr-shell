@@ -3,7 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
 
-// ScreenshotPreview — macOS-style. Captures pile into a bottom-right STACK
+// ScreenshotPreview — captured shots pile into a bottom-right STACK
 // (visually up to 3 cards, a count badge for more). Each new capture resets the
 // shared 5s timer; hovering pauses it. Dragging the stack drops ALL the files.
 // screenshot.sh notifies via `qs ipc call preview pop <path>`.
