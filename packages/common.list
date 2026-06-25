@@ -80,7 +80,7 @@ gvfs-mtp
 gvfs-smb
 udisks2
 unzip
-p7zip
+7zip                     # provides 7z (p7zip was dropped from the Arch repos)
 
 # ── browser + editor ──────────────────────────────────────────────────────────
 # Terminal IDE is Fresh (AUR: fresh-editor, see aur.list) — the default text/code

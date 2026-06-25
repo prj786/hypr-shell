@@ -16,9 +16,11 @@ phase_gpu() {
         esac
         case " $GPU_VENDOR " in
             *" amd "*)
-                install_official vulkan-radeon libva-mesa-driver
-                [ "${GAMING:-0}" = "1" ] && install_official lib32-vulkan-radeon lib32-libva-mesa-driver
-                ok "AMD: RADV + VAAPI installed." ;;
+                # AMD VAAPI now ships inside mesa (libva-mesa-driver was merged
+                # upstream and dropped from the repos), so RADV is all we add here.
+                install_official vulkan-radeon
+                [ "${GAMING:-0}" = "1" ] && install_official lib32-vulkan-radeon
+                ok "AMD: RADV + VAAPI (via mesa) installed." ;;
         esac
         case " $GPU_VENDOR " in
             *" nvidia "*)
