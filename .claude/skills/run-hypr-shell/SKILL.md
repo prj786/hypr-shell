@@ -1,13 +1,13 @@
 ---
 name: run-hypr-shell
-description: Run, drive, and screenshot the hypr-shell Quickshell desktop shell (top bar, Settings app, App Store, Control Center, dock) and syntax-check the Hyprland Lua config — without installing to the live session. Use when asked to launch, start, test, screenshot, or verify a change to the hypr-shell DE, its Quickshell QML, or hyprland.lua.
+description: Run, drive, and screenshot the hypr-shell Quickshell desktop shell (top bar, Settings app, App Store, Quick Settings, dock) and syntax-check the Hyprland Lua config — without installing to the live session. Use when asked to launch, start, test, screenshot, or verify a change to the hypr-shell DE, its Quickshell QML, or hyprland.lua.
 ---
 
 # Running hypr-shell
 
-`hypr-shell` is an Arch-only, macOS-aesthetic Hyprland + Quickshell desktop
+`hypr-shell` is an Arch-only, clean dark Hyprland + Quickshell desktop
 environment. The part that changes most (top **Bar**, **Settings** app,
-**App Store**, **Control Center**, **Dock**) is the Quickshell QML shell in
+**App Store**, **Quick Settings**, **Dock**) is the Quickshell QML shell in
 `dotfiles/quickshell/`. You drive it with **`.claude/skills/run-hypr-shell/driver.sh`**,
 which nests a throwaway Hyprland compositor on its own Wayland socket, runs
 `qs -p dotfiles/quickshell` inside it, and screenshots that virtual output with
@@ -39,7 +39,7 @@ sudo pacman -S --needed hyprland quickshell grim wlr-randr lua
 .claude/skills/run-hypr-shell/driver.sh up              # nested compositor + shell, waits for "Configuration Loaded"
 .claude/skills/run-hypr-shell/driver.sh open settings   # toggle a surface + screenshot -> /tmp/hs-driver/settings.png
 .claude/skills/run-hypr-shell/driver.sh open store       # the App Store
-.claude/skills/run-hypr-shell/driver.sh open control     # the Control Center
+.claude/skills/run-hypr-shell/driver.sh open quicksettings   # the Quick Settings
 .claude/skills/run-hypr-shell/driver.sh shot bar.png     # screenshot whatever is on the nested output now (the bar+dock)
 .claude/skills/run-hypr-shell/driver.sh targets          # list every IpcHandler target + function
 .claude/skills/run-hypr-shell/driver.sh ipc settings toggle   # raw IpcHandler call (target + function)
@@ -56,7 +56,7 @@ Typical loop for verifying a QML change: edit `dotfiles/quickshell/*.qml` →
 → read the PNG.
 
 IpcHandler targets exposed by the shell (from `targets`): `settings`, `store`,
-`control`, `bar`, `spotlight`, `launcher`, `overview`, `clipboard`, `lock`,
+`quicksettings`, `bar`, `applauncher`, `launcher`, `overview`, `clipboard`, `lock`,
 `osd`, `preview` — most take `show`/`hide`/`toggle`.
 
 ### Hyprland config check

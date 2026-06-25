@@ -1,7 +1,7 @@
 -- colors.lua — Gruvbox (dark, medium contrast) palette for the Hyprland side
 -- (window borders), ported from the old Qtile `desktop_env/theme/colors.py`.
 -- NOTE: the shell (bar + launcher) is now Quickshell under ~/.config/quickshell/
--- — the bar replica carries its own gruvbox hex; the macOS redesign uses
+-- — the bar replica carries its own gruvbox hex; the shell redesign uses
 -- Theme.qml (graphite + SF Pro). This file only feeds hyprland.lua now.
 --
 -- Hyprland wants colours as `rgba(RRGGBBAA)` / `rgb(RRGGBB)` strings, or as
@@ -34,7 +34,7 @@ M.purple  = "d3869b"
 M.aqua    = "8ec07c"
 M.orange  = "fe8019"
 
--- macOS graphite theme — MIRRORS ~/.config/quickshell/Theme.qml (the shell's single
+-- graphite theme — MIRRORS ~/.config/quickshell/Theme.qml (the shell's single
 -- source of truth). Kept here so Hyprland-drawn chrome (group bar / borders) matches the
 -- shell. If a token changes in Theme.qml, change it here too.
 M.t_bg          = "1c1c1e"  -- desktop / app base
@@ -44,7 +44,7 @@ M.t_hover       = "3a3a3c"  -- hover fill
 M.t_stroke      = "38383a"  -- hairline border
 M.t_fg          = "f2f2f7"  -- primary text
 M.t_fg_dim      = "8e8e93"  -- dim text
-M.t_accent      = "0a84ff"  -- macOS system blue (active tab)
+M.t_accent      = "0a84ff"  -- system blue (active tab)
 M.t_accent_text = "ffffff"
 
 -- Helpers -------------------------------------------------------------------

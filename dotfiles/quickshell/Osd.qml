@@ -10,7 +10,7 @@ import Quickshell.Services.Pipewire
 //   · Volume    — reactive: watches the default sink (covers hardware keys + mute).
 //   · Brightness— pushed from the brightness keybinds via `qs ipc call osd brightness`
 //                 (there's no Wayland brightness service to observe).
-// Suppressed while the Control Centre is open (it already shows both sliders there).
+// Suppressed while Quick Settings is open (it already shows both sliders there).
 Scope {
     id: root
 
@@ -23,7 +23,7 @@ Scope {
     function g(c) { return String.fromCodePoint(c) }
 
     function popup() {
-        if (Globals.controlOpen) return    // control centre already shows the sliders
+        if (Globals.quickSettingsOpen) return    // Quick Settings already shows the sliders
         root.shown = true
         hideTimer.restart()
     }

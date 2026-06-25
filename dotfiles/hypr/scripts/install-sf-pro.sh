@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# install-sf-pro.sh — fetch Apple's real SF Pro (Display + Text) OTFs into the
-# per-user font dir. No root needed. These are Apple's font files (proprietary
-# license, free to install for personal use); we mirror the weights a UI shell
+# install-sf-pro.sh — fetch the SF Pro (Display + Text) OTFs into the
+# per-user font dir. No root needed. These font files have a proprietary license
+# (free to install for personal use); we mirror the weights a UI shell
 # actually uses. Re-runnable: skips files already present.
 set -u
 

@@ -19,5 +19,5 @@ body:
     attributes:
       value: |
         Note: hypr-shell is **opinionated and Arch-only** by design, and deliberately
-        avoids macOS-clone aesthetics where they conflict with its own identity.
+        avoids clone-of-another-OS aesthetics where they conflict with its own identity.
         Requests that fit that scope are most likely to land.

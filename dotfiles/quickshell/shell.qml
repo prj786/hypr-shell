@@ -1,10 +1,10 @@
 import Quickshell
 
-// Quickshell entry point. macOS-style shell, built incrementally.
+// Quickshell entry point. Built incrementally.
 //   - Bar:           top bar (Search… · window · workspaces · status · clock).
-//   - Spotlight:     centered fuzzy app launcher (Super+D).
+//   - Launcher:      centered fuzzy app launcher (Super+D).
 //   - Notifications: native notification server + top-right toasts.
-//   - ControlCenter: clock → calendar + Do Not Disturb + notifications.
+//   - QuickSettings: clock → calendar + Do Not Disturb + notifications.
 ShellRoot {
     Notifications {}
     Bar {}
@@ -13,8 +13,8 @@ ShellRoot {
     AppStore {}
     Places {}
     TrayMenu {}
-    Spotlight {}
-    ControlCenter {}
+    Launcher {}
+    QuickSettings {}
     Auth {}
     Clipboard {}
     ScreenshotPreview {}

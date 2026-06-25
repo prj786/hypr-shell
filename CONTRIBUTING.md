@@ -8,7 +8,7 @@ Quickshell desktop. A few things make contributing here smooth.
 - **Arch only.** Package install assumes `pacman` + the AUR. Don't add multi-distro
   branches to the installer.
 - **Opinionated by design.** It's a curated DE, not a framework. New components are
-  welcome; sprawling config knobs and macOS-clone aesthetics usually aren't.
+  welcome; sprawling config knobs and clone-of-another-OS aesthetics usually aren't.
 - **Everything lives in the repo.** Edit `dotfiles/`, `phases/`, `lib/`, `systemd/`,
   `system/` — never hand-edit a deployed `~/.config` and call it done. The whole DE
   must come up from a clean `git clone && ./install.sh`.

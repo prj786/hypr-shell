@@ -14,7 +14,7 @@
 
 An opinionated, installable desktop environment for **Arch Linux**: **Hyprland**
 (Wayland compositor, Lua-configured) + **Quickshell** (QML shell — bar, dock,
-launcher, notifications, control center, settings app, lock, OSD, clipboard, an
+launcher, notifications, Quick Settings, settings app, lock, OSD, clipboard, an
 app installer, a RunCat, and a "Welcome `<user>`" session splash). A Plymouth boot
 splash hides the kernel/systemd text before the greeter. One script turns a
 minimal Arch install into the full DE.
@@ -42,8 +42,8 @@ suffix until the first stable cut. The canonical version lives in the repo-root
 
 | | |
 |---|---|
-| **Spotlight** — fuzzy app / file search<br><img src="docs/media/search-bar.png" alt="Spotlight search"> | **Window overview** — spaces & open windows<br><img src="docs/media/overview.png" alt="Window overview"> |
-| **App launcher** — pinned apps from the dock<br><img src="docs/media/app-launcher.png" alt="App launcher"> | **Control Center**<br><img src="docs/media/control-center.png" alt="Control Center"> |
+| **Launcher** — fuzzy app / file search<br><img src="docs/media/search-bar.png" alt="Launcher search"> | **Window overview** — spaces & open windows<br><img src="docs/media/overview.png" alt="Window overview"> |
+| **App launcher** — pinned apps from the dock<br><img src="docs/media/app-launcher.png" alt="App launcher"> | **Quick Settings**<br><img src="docs/media/control-center.png" alt="Quick Settings"> |
 | **Settings**<br><img src="docs/media/settings.png" alt="Settings app"> | **App installer** — pacman + AUR<br><img src="docs/media/app-installer.png" alt="App installer"> |
 | **Clipboard history**<br><img src="docs/media/clipboard-history.png" alt="Clipboard history"> | **Dock**<br><img src="docs/media/dock.png" alt="Dock"> |
 
@@ -130,8 +130,8 @@ genuinely safe and the whole thing is re-runnable.
 The shipped first-party apps are **traditional GTK**: **Nemo** (file manager),
 **Engrampa** (archives), **imv** (images), **Zathura** (PDF/docs), **mpv** (video).
 These use a normal menubar/toolbar + server-side decorations, so under Hyprland —
-which draws **no titlebar**, just the accent border — they come up clean, the
-macOS-borderless look. The "GTK forces an unhideable headerbar" rule only applies
+which draws **no titlebar**, just the accent border — they come up clean, with a
+fully borderless look. The "GTK forces an unhideable headerbar" rule only applies
 to **GNOME/libadwaita** apps (Nautilus, GNOME Calendar, Evince); ordinary GTK apps
 don't, which is why we can have the no-titlebar aesthetic *and* GTK.
 
@@ -189,17 +189,19 @@ system/   greetd/                ← greetd + ReGreet configs, installed to /etc
 templates/hyprland-de.desktop.in  ← rendered into the wayland-sessions dir
 ```
 
-## Notes for this hardware (Lunar Lake / Arc 140V)
+## Hardware notes: Intel Lunar Lake / Arc 140V
 
-The `xe` kernel driver has a DPMS-resume bug that can strand a black screen, so the
-shipped `hypridle.conf` locks but **never powers the panel off**. If the iGPU ever
-tears or hangs, log in once with `DE_SOFTWARE_RENDER=1` set (see
-`dotfiles/hypr/start-hyprland.sh`).
+On Intel Lunar Lake (Arc 140V), the `xe` kernel driver has a DPMS-resume bug that
+can strand a black screen, so the shipped `hypridle.conf` locks but **never powers
+the panel off**. If the iGPU tears or hangs, logging in once with
+`DE_SOFTWARE_RENDER=1` set falls back to software rendering (see
+`dotfiles/hypr/start-hyprland.sh`). Hardware without this bug is unaffected and can
+re-enable panel-off in `hypridle.conf`.
 
 ## Roadmap
 
 **Shipped (`0.2.0-alpha`)** — Hyprland + Lua config, top bar, dock, launcher
-(Spotlight), native notifications, control center, settings app, session lock, OSD,
+(Launcher), native notifications, Quick Settings, settings app, session lock, OSD,
 clipboard history, polkit agent, system tray, screenshots, XDG portals, greeter,
 Plymouth boot splash + welcome splash, traditional-GTK app stack with one-file
 default-app management, live theming + accent, shell crash-respawn, idle-suspend +

@@ -2,8 +2,8 @@
 
 The **Hyprland** half of [hypr-shell](../../README.md): a Wayland compositor
 configured in **Lua**, paired with the **Quickshell** QML shell (bar, dock,
-launcher, notifications, control center, settings, lock, OSD) that lives in
-[`../quickshell/`](../quickshell/). macOS-style aesthetic, Super-based keybinds.
+launcher, notifications, Quick Settings, settings, lock, OSD) that lives in
+[`../quickshell/`](../quickshell/). Clean dark aesthetic, Super-based keybinds.
 
 > **Arch Linux only.** This config is deployed by the repo-root `install.sh`
 > (a symlink farm: `dotfiles/hypr` → `~/.config/hypr`) and the session is started
@@ -30,19 +30,19 @@ Hyprland straight from the official repos (installed by phase 20).
 ├── scripts/
 │   ├── autostart.sh      # one-shot session bring-up (run by the hyprland start hook)
 │   ├── lock.sh           # lock the session (prefers hyprlock)
-│   ├── power.sh          # Control Center power actions (lock/logout/suspend/reboot/poweroff)
+│   ├── power.sh          # Quick Settings power actions (lock/logout/suspend/reboot/poweroff)
 │   ├── screenshot.sh     # grim/slurp → ~/Pictures/Screenshots + clipboard
 │   ├── wallpaper.sh      # swaybg wallpaper
 │   ├── calendar.sh       # Super+C calendar popup
 │   ├── idle-suspend.sh   # battery-only idle suspend helper
 │   ├── lid.sh            # laptop lid handling
 │   ├── kb-per-window.py  # per-window keyboard-layout memory
-│   └── install-sf-pro.sh # optional: fetch Apple SF Pro fonts (user-level)
+│   └── install-sf-pro.sh # optional: fetch SF Pro fonts (user-level)
 ├── SHORTCUTS.md          # every keybinding
 └── README.md
 ```
 
-The bar, launcher, control center and lock are **Quickshell**, not Waybar — see
+The bar, launcher, Quick Settings and lock are **Quickshell**, not Waybar — see
 [`../quickshell/`](../quickshell/). Edit `hyprland.lua` and reload with
 **Super + Ctrl + R** (Hyprland also auto-reloads on save).
 
@@ -75,5 +75,5 @@ via `hl.env()` — propagation to on-demand-launched apps is unreliable otherwis
 ## Keybindings
 
 Mod is **Super**. Full list in [`SHORTCUTS.md`](SHORTCUTS.md). First keys:
-`Super+Return` (terminal), `Super+D` (Spotlight), `Super+,` (Settings),
-`Super+N` (Control Center).
+`Super+Return` (terminal), `Super+D` (Launcher), `Super+,` (Settings),
+`Super+N` (Quick Settings).

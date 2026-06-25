@@ -3,7 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 
-// AppMenu — the macOS ⌘-menu equivalent. Clicking the bold app name in the bar
+// AppMenu — the application menu. Clicking the bold app name in the bar
 // drops this down: window/app actions driven by Hyprland dispatchers (works for
 // every app, since it's compositor-driven — not the app's own File/Edit menus,
 // which Wayland/Hyprland can't expose).

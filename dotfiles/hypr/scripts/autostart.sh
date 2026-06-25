@@ -38,7 +38,7 @@ fi
 # ── Wallpaper (swaybg) ───────────────────────────────────────────────────────
 "$HOME/.config/hypr/scripts/wallpaper.sh" >/dev/null 2>&1 &
 
-# ── Quickshell (the macOS-style QML shell: bar/dock/launcher/notifications/lock) ─
+# ── Quickshell (the QML shell: bar/dock/launcher/notifications/lock) ─────────────
 # Run as a systemd USER SERVICE so it RESPAWNS on crash (Restart=on-failure) —
 # otherwise a shell crash kills the bar/dock/lock with no way back. The session
 # env was exported into the systemd manager above, so the service inherits

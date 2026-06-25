@@ -8,7 +8,7 @@ import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 import Quickshell.Bluetooth
 
-// ControlCenter — full-height macOS-style sidebar, slides in from the right.
+// QuickSettings — full-height sidebar, slides in from the right.
 // Layout: header · quick-toggle grid (Wi-Fi/Bluetooth/VPN/DND, each expands its
 // own section) · brightness+volume sliders + audio output · media · calendar ·
 // notifications.
@@ -91,19 +91,19 @@ Scope {
     property string confirmVerb: ""
     function runPower(action) {
         Quickshell.execDetached(["sh", "-c", "exec \"$HOME/.config/hypr/scripts/power.sh\" " + action])
-        root.confirmAction = ""; root.powerOpen = false; Globals.controlOpen = false
+        root.confirmAction = ""; root.powerOpen = false; Globals.quickSettingsOpen = false
     }
     function askPower(action, title, verb) {
         root.powerOpen = false
         root.confirmTitle = title; root.confirmVerb = verb; root.confirmAction = action
     }
 
-    Connections { target: Globals; function onControlOpenChanged() { if (Globals.controlOpen) root.refresh() } }
+    Connections { target: Globals; function onQuickSettingsOpenChanged() { if (Globals.quickSettingsOpen) root.refresh() } }
     IpcHandler {
-        target: "control"
-        function toggle(): void { Globals.controlOpen = !Globals.controlOpen }
-        function show(): void { Globals.controlOpen = true }
-        function hide(): void { Globals.controlOpen = false }
+        target: "quicksettings"
+        function toggle(): void { Globals.quickSettingsOpen = !Globals.quickSettingsOpen }
+        function show(): void { Globals.quickSettingsOpen = true }
+        function hide(): void { Globals.quickSettingsOpen = false }
     }
 
     Process {
@@ -161,11 +161,11 @@ Scope {
             }
         }
     }
-    Timer { interval: 6000; running: true; repeat: true; onTriggered: { if (!Globals.controlOpen) return; wifiState.running = true; wiredState.running = true; if (root.expanded === "wifi") wifiScan.running = true } }
+    Timer { interval: 6000; running: true; repeat: true; onTriggered: { if (!Globals.quickSettingsOpen) return; wifiState.running = true; wiredState.running = true; if (root.expanded === "wifi") wifiScan.running = true } }
 
     PanelWindow {
         id: win
-        visible: Globals.controlOpen || closeTimer.running
+        visible: Globals.quickSettingsOpen || closeTimer.running
         color: "transparent"
         exclusiveZone: 0
         WlrLayershell.namespace: "quickshell:control"
@@ -173,8 +173,8 @@ Scope {
         anchors { top: true; bottom: true; left: true; right: true }
 
         Timer { id: closeTimer; interval: 320 }
-        Connections { target: Globals; function onControlOpenChanged() { if (!Globals.controlOpen) { closeTimer.restart(); root.powerOpen = false } } }
-        MouseArea { anchors.fill: parent; onClicked: Globals.controlOpen = false }
+        Connections { target: Globals; function onQuickSettingsOpenChanged() { if (!Globals.quickSettingsOpen) { closeTimer.restart(); root.powerOpen = false } } }
+        MouseArea { anchors.fill: parent; onClicked: Globals.quickSettingsOpen = false }
 
         Rectangle {
             id: panel
@@ -186,21 +186,21 @@ Scope {
             border.color: Theme.stroke
             border.width: 1
             clip: true
-            property real off: Globals.controlOpen ? 0 : (width + 60)
+            property real off: Globals.quickSettingsOpen ? 0 : (width + 60)
             x: parent.width - width - 10 + off
             Behavior on off { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
             MouseArea { anchors.fill: parent }
 
-            // catches Esc to close (control centre is otherwise mouse-driven)
+            // catches Esc to close (Quick Settings is otherwise mouse-driven)
             Item {
                 id: keyCatcher
                 anchors.fill: parent
                 focus: true
-                Keys.onEscapePressed: { if (root.powerOpen) root.powerOpen = false; else Globals.controlOpen = false }
+                Keys.onEscapePressed: { if (root.powerOpen) root.powerOpen = false; else Globals.quickSettingsOpen = false }
             }
             Connections {
                 target: Globals
-                function onControlOpenChanged() { if (Globals.controlOpen) keyCatcher.forceActiveFocus() }
+                function onQuickSettingsOpenChanged() { if (Globals.quickSettingsOpen) keyCatcher.forceActiveFocus() }
             }
 
             // ── round close button (centered MDI glyph) ──
@@ -319,7 +319,7 @@ Scope {
                                 color: gbMa.containsMouse ? Theme.hover : Theme.elevated
                                 Behavior on color { ColorAnimation { duration: 120 } }
                                 Text { anchors.centerIn: parent; text: root.g(0xF0493); font.family: Theme.fontMono; font.pixelSize: 15; color: Theme.fg }
-                                MouseArea { id: gbMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { Globals.controlOpen = false; Globals.settingsOpen = true } }
+                                MouseArea { id: gbMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { Globals.quickSettingsOpen = false; Globals.settingsOpen = true } }
                             }
                             // power button → opens the floating power menu
                             Rectangle {
@@ -422,7 +422,7 @@ Scope {
                                                     onTextChanged: root.pwText = text
                                                     Component.onCompleted: if (root.pwTarget === modelData.ssid) forceActiveFocus()
                                                     onAccepted: root.connectWifi(modelData.ssid, modelData.sec)
-                                                    Keys.onEscapePressed: Globals.controlOpen = false
+                                                    Keys.onEscapePressed: Globals.quickSettingsOpen = false
                                                     Text { anchors.verticalCenter: parent.verticalCenter; visible: pwInput.text.length === 0; text: "Password"; color: Theme.fgDim; font: pwInput.font }
                                                 }
                                                 Text { anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: "Join"; color: Theme.accent; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; font.weight: Font.DemiBold; MouseArea { anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor; onClicked: root.connectWifi(modelData.ssid, modelData.sec) } }
@@ -647,7 +647,7 @@ Scope {
                                         if (seg.length) { Quickshell.execDetached(["hyprctl", "dispatch", "focuswindow", "class:(?i).*" + seg + ".*"]); break }
                                     }
                                     try { if (n.actions) for (var i = 0; i < n.actions.length; i++) if (n.actions[i].identifier === "default") { n.actions[i].invoke(); break } } catch (e) {}
-                                    Globals.controlOpen = false
+                                    Globals.quickSettingsOpen = false
                                 }
                             }
                             CloseBtn { anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 8; onPressed: modelData.dismiss() }

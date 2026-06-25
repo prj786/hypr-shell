@@ -4,8 +4,8 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
 
-// Spotlight — a centered, frosted app launcher with fuzzy search.
-// Toggled via IPC:  qs ipc call spotlight toggle   (bound to Super+Space).
+// Launcher — a centered, frosted app launcher with fuzzy search.
+// Toggled via IPC:  qs ipc call applauncher toggle   (bound to Super+D).
 Scope {
     id: root
 
@@ -32,7 +32,7 @@ Scope {
     }
 
     IpcHandler {
-        target: "spotlight"
+        target: "applauncher"
         function toggle(): void { root.toggle() }
         function show(): void { root.opened = true }
         function hide(): void { root.opened = false }
@@ -168,7 +168,7 @@ Scope {
         exclusiveZone: 0
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
-        WlrLayershell.namespace: "quickshell:spotlight"
+        WlrLayershell.namespace: "quickshell:applauncher"
         anchors { top: true; bottom: true; left: true; right: true }
 
         onVisibleChanged: if (visible) input.forceActiveFocus()
@@ -179,7 +179,7 @@ Scope {
             onClicked: root.hide()
         }
 
-        // ── centered panel (sits in the upper third, like Spotlight) ──
+        // ── centered panel (sits in the upper third) ──
         Item {
             id: panelWrap
             width: 640

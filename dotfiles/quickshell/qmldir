@@ -1,9 +1,9 @@
 singleton Theme 1.0 Theme.qml
 singleton Globals 1.0 Globals.qml
-Spotlight 1.0 Spotlight.qml
+Launcher 1.0 Launcher.qml
 Bar 1.0 Bar.qml
 Notifications 1.0 Notifications.qml
-ControlCenter 1.0 ControlCenter.qml
+QuickSettings 1.0 QuickSettings.qml
 Auth 1.0 Auth.qml
 Clipboard 1.0 Clipboard.qml
 ScreenshotPreview 1.0 ScreenshotPreview.qml

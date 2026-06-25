@@ -1,10 +1,10 @@
 pragma Singleton
 import QtQuick
 
-// Theme — single source of truth for the macOS "graphite dark + blue" look.
+// Theme — single source of truth for the "graphite dark + blue" look.
 // Tuned for SF Pro and compact, polished metrics. Imported as `Theme.*`.
 QtObject {
-    // ── Palette: macOS graphite dark — SINGLE SOURCE OF TRUTH for colour ───
+    // ── Palette: graphite dark — SINGLE SOURCE OF TRUTH for colour ─────────
     // Solid, no glass/transparency (we revisit theming later). Keep every colour
     // here and reference it as Theme.* — components should not define their own.
     readonly property color bg:          "#1c1c1e"   // desktop / app base
@@ -20,7 +20,7 @@ QtObject {
 
     // Accent is user-settable: it binds to Globals.accentColor (written by the
     // Settings → Theme pane, persisted in user-theme.json). Changing it recolours
-    // every surface live. Default stays macOS system blue.
+    // every surface live. Default stays system blue.
     readonly property color accent:      Globals.accentColor
     // accentText auto-contrasts with the accent (white on dark accents, ink on
     // light ones) so foreground text on accent fills stays legible at any hue.
@@ -32,7 +32,7 @@ QtObject {
     readonly property color danger:      "#ff453a"   // critical / low battery
 
     // ── Type (SF Pro) ─────────────────────────────────────────────────────
-    // SF Pro Text for body/small, SF Pro Display for large/titles (Apple's
+    // SF Pro Text for body/small, SF Pro Display for large/titles (the
     // optical-size split).
     readonly property string fontText:    "SF Pro Text"
     readonly property string fontDisplay: "SF Pro Display"
@@ -51,7 +51,7 @@ QtObject {
     readonly property int gap:          8
     readonly property int barHeight:    28
 
-    // ── Motion (ms) — quick, ease-out, macOS-like. Scaled by the global
+    // ── Motion (ms) — quick, ease-out. Scaled by the global
     //    animation-speed setting (>1 faster, 0 = instant) so the whole shell
     //    tracks the Settings → Theme → Animations control. ──────────────────
     readonly property real _animMul: Globals.animationSpeed

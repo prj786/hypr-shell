@@ -8,7 +8,7 @@ import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 import Quickshell.Bluetooth
 
-// Bar — the macOS-style topbar. One bar per monitor. All colours and fonts are
+// Bar — the topbar. One bar per monitor. All colours and fonts are
 // pulled from Theme.qml (the single source of truth), solid (no glass).
 Scope {
     id: bar
@@ -208,7 +208,7 @@ Scope {
                             onClicked: Quickshell.execDetached(["qs", "ipc", "call", "spotlight", "toggle"])
                         }
                     }
-                    // bold app name → app menu (macOS ⌘-menu equivalent)
+                    // bold app name → app menu
                     Item {
                         id: appNameItem
                         anchors.verticalCenter: parent.verticalCenter
@@ -345,7 +345,7 @@ Scope {
                         height: 22
                         radius: 8
                         width: ctlRow.implicitWidth + 18
-                        color: (ctlMa.containsMouse || Globals.controlOpen) ? Theme.hover : "transparent"
+                        color: (ctlMa.containsMouse || Globals.quickSettingsOpen) ? Theme.hover : "transparent"
 
                         Row {
                             id: ctlRow
@@ -384,21 +384,22 @@ Scope {
                                 font.family: Theme.fontMono; font.pixelSize: 13
                                 color: conn > 0 ? Theme.accent : Theme.fgSecondary
                             }
-                            // VPN (only when active)
+                            // VPN (only when active) — key glyph, accent colour
                             Text {
                                 visible: Globals.vpnActive
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: bar.g(0xF0582)
+                                text: bar.g(0xF0306)
                                 font.family: Theme.fontMono; font.pixelSize: 14
-                                color: Theme.success
+                                color: Theme.accent
                             }
-                            // Caffeine (only when keep-awake is on)
+                            // Insomnia / keep-awake (only when on) — eye glyph, matches
+                            // the control-centre toggle; accent colour
                             Text {
                                 visible: Globals.caffeine
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: bar.g(0xF0176)
+                                text: bar.g(0xF0208)
                                 font.family: Theme.fontMono; font.pixelSize: 13
-                                color: Theme.warning
+                                color: Theme.accent
                             }
                             // Power profile (leaf · balance · speedometer) — reflects tuned profile
                             Text {
@@ -453,7 +454,7 @@ Scope {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: Globals.controlOpen = !Globals.controlOpen
+                            onClicked: Globals.quickSettingsOpen = !Globals.quickSettingsOpen
                         }
                     }
                 }

@@ -5,9 +5,9 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 
-// Dock — a small, centered bottom dock (macOS-ish, but our own take). Layout:
+// Dock — a small, centered bottom dock (our own take). Layout:
 //   [ launcher ] [ overview ] | [ workspace boxes … ]
-// The launcher opens Spotlight; overview opens the window overview; each workspace
+// The launcher opens the Launcher; overview opens the window overview; each workspace
 // box shows its windows as little app tiles (click a tile to focus that window,
 // click the box to switch to that workspace). Replaces the top-bar workspace row.
 //
