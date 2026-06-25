@@ -1,111 +1,79 @@
-# Hyprland desktop (Lua) — macOS-style
+# Hyprland config (Lua) — hypr-shell
 
-A from-scratch replacement for the old Qtile `desktop_env`, built on **Hyprland
-0.55+** configured in **Lua** (`hyprland.lua`), with a **macOS-style Waybar top
-bar** as the centrepiece. Gruvbox dark throughout, the same Super-based vim
-keybindings, and the same Wayland/Qt/GTK environment carried over from Qtile.
+The **Hyprland** half of [hypr-shell](../../README.md): a Wayland compositor
+configured in **Lua**, paired with the **Quickshell** QML shell (bar, dock,
+launcher, notifications, control center, settings, lock, OSD) that lives in
+[`../quickshell/`](../quickshell/). macOS-style aesthetic, Super-based keybinds.
 
-> **Lua, confirmed.** Since Hyprland 0.55 (2026) the config language *is* Lua —
-> `~/.config/hypr/hyprland.lua` is loaded in preference to the deprecated
-> `hyprland.conf`. So "Hyprland with Lua" was exactly right.
+> **Arch Linux only.** This config is deployed by the repo-root `install.sh`
+> (a symlink farm: `dotfiles/hypr` → `~/.config/hypr`) and the session is started
+> by **greetd + ReGreet**. There is no per-directory installer, no COPR/`dnf`, and
+> no GDM — see the top-level [`README.md`](../../README.md) for the full install.
 
-## Status
+## Requirements
 
-Configuration is **complete and statically validated** (Lua parses, Waybar JSON
-is valid, every Nerd-Font glyph used is present, all scripts pass `bash -n`).
-The only remaining step needs **root** — installing the packages and removing the
-Qtile RPM. Run:
-
-```bash
-bash ~/.config/hypr/install.sh
-```
-
-That enables the right COPR, installs Hyprland + Waybar + the few missing tools,
-registers the **"Hyprland (DE)"** GDM session, and removes Qtile. Then log out of
-GNOME and pick **Hyprland (DE)** from the gear menu on the login screen.
-
-GNOME is left completely untouched — it stays your fallback session.
-
-## Why the ashbuk COPR (not solopasha)
-
-Hyprland isn't in Fedora's official repos. The usual `solopasha/hyprland` COPR
-was still on 0.51 for Fedora 44 (pre-Lua); **`ashbuk/Hyprland-Fedora` ships
-0.55.1**, which is what the Lua config needs. `install.sh` enables it for you.
+**Hyprland ≥ 0.55** — that's where the Lua config landed. `~/.config/hypr/hyprland.lua`
+is loaded in preference to the deprecated `hyprland.conf`; an older Hyprland
+silently ignores it and the DE won't come up right. On Arch you get a current
+Hyprland straight from the official repos (installed by phase 20).
 
 ## Layout
 
 ```
 ~/.config/hypr/
-├── hyprland.lua          # main config: env, look&feel, input, keybinds, rules, autostart
-├── colors.lua            # Gruvbox palette (single source of truth, mirrors Waybar CSS)
-├── start-hyprland.sh     # session wrapper (desktop identity + software-render escape hatch)
-├── hyprland-de.desktop   # GDM session entry (installed to /usr/local/share by install.sh)
-├── install.sh            # the one root step
+├── hyprland.lua          # main config: env, look & feel, input, keybinds, rules, autostart
+├── colors.lua            # window-border / decoration palette (required by hyprland.lua)
+├── hypridle.conf         # idle: locks (and suspends on battery); NO dpms-off (xe resume-bug guard)
+├── start-hyprland.sh     # "Hyprland (DE)" session wrapper — exports toolkit theming env, then exec Hyprland
+├── generated/
+│   └── user.lua          # your overrides, sourced LAST (seeded from user.lua.default; gitignored)
 ├── scripts/
-│   ├── autostart.sh      # run-once daemons: quickshell, swaync, polkit, tray, idle, wallpaper
-│   ├── wallpaper.sh      # swaybg (drop ~/.config/hypr/wallpaper.jpg)
-│   ├── screenshot.sh     # grim/slurp → file + clipboard
-│   ├── lock.sh           # hyprlock || swaylock(gruvbox) || gtklock
-│   ├── install-sf-pro.sh # fetch Apple SF Pro fonts (user-level)
-│   └── calendar.sh       # Super+C
+│   ├── autostart.sh      # one-shot session bring-up (run by the hyprland start hook)
+│   ├── lock.sh           # lock the session (prefers hyprlock)
+│   ├── power.sh          # Control Center power actions (lock/logout/suspend/reboot/poweroff)
+│   ├── screenshot.sh     # grim/slurp → ~/Pictures/Screenshots + clipboard
+│   ├── wallpaper.sh      # swaybg wallpaper
+│   ├── calendar.sh       # Super+C calendar popup
+│   ├── idle-suspend.sh   # battery-only idle suspend helper
+│   ├── lid.sh            # laptop lid handling
+│   ├── kb-per-window.py  # per-window keyboard-layout memory
+│   └── install-sf-pro.sh # optional: fetch Apple SF Pro fonts (user-level)
 ├── SHORTCUTS.md          # every keybinding
 └── README.md
-~/.config/quickshell/     # the shell: Bar.qml (top bar) + Spotlight.qml (launcher)
-│   ├── shell.qml            # entry point
-│   ├── Theme.qml            # graphite-dark + SF Pro tokens (macOS redesign)
-│   ├── Bar.qml              # top bar (currently a 1:1 gruvbox Waybar replica)
-│   └── Spotlight.qml        # Super+Space fuzzy launcher
-~/.config/xdg-desktop-portal/hyprland-portals.conf
 ```
 
-## The top bar (the feature)
+The bar, launcher, control center and lock are **Quickshell**, not Waybar — see
+[`../quickshell/`](../quickshell/). Edit `hyprland.lua` and reload with
+**Super + Ctrl + R** (Hyprland also auto-reloads on save).
 
-A thin, flush, full-width bar that reads like the macOS menu bar but in Gruvbox:
+## Customising — don't edit `hyprland.lua` for personal tweaks
 
-- **Left** — Apple  menu (left-click = power/session, right-click = app launcher)
-  and the **focused app title** in bold.
-- **Centre** — workspaces 1–8 as pills; the active one gets a yellow-tinted pill.
-- **Right** — a restrained, monochrome status cluster (tray, brightness, volume,
-  bluetooth, network, battery), a control-centre bell (swaync), and a macOS-style
-  12-hour clock with a calendar tooltip.
-
-It's translucent and **frosted by Hyprland's blur**; items get rounded hover
-highlights. Text is Adwaita Sans, glyphs are Hurmit Nerd Font (both already
-installed). Toggle it with `Super`+`Shift`+`B`.
-
-## GPU notes (Lunar Lake / Arc 140V, `xe` driver)
-
-Carried over from the Qtile setup's hard-won findings:
-
-- The `xe` hardware-cursor plane is flaky (`drmModeAtomicCommit: Invalid argument`
-  + a PSR2 selective-fetch bug) → cursor freeze/garble. Fixed in `hyprland.lua`
-  via `cursor:no_hardware_cursors = true` (the Hyprland equivalent of the old
-  `WLR_NO_HARDWARE_CURSORS=1`).
-- If the screen ever tears/hangs/corrupts: log in once with `DE_SOFTWARE_RENDER=1`
-  in your environment (the `start-hyprland.sh` wrapper honours it), or boot with
-  the kernel param `xe.enable_psr=0`.
+Put your overrides in **`generated/user.lua`**, which `hyprland.lua` sources last
+so it wins. It's gitignored and seeded from `generated/user.lua.default` on first
+install, so your changes survive `git pull` + re-running `install.sh` and are never
+committed. Reserve `hyprland.lua` for changes you intend to upstream.
 
 ## Theming
 
-Colours live once in `colors.lua` (Hyprland) and the matching hex in
-`quickshell/Bar.qml` (and `Theme.qml` for the redesign). GTK/Qt theming (adw-gtk3-dark + qt6ct)
-comes from the packages `install.sh` lays down; the env that wires Qt/GTK to
-Wayland is set in `hyprland.lua` via `hl.env()`.
+`colors.lua` holds the Hyprland window-border / decoration colours and is required
+by `hyprland.lua`. The **shell's** palette + accent live separately in the
+Quickshell `Theme.qml`, driven by Settings → Theme (which also writes GTK/Qt via
+`../quickshell/scripts/colorscheme.sh`). The toolkit theming env (`QT_QPA_PLATFORMTHEME`,
+GTK/cursor vars) is exported in `start-hyprland.sh` **before** `exec Hyprland`, not
+via `hl.env()` — propagation to on-demand-launched apps is unreliable otherwise.
 
-## Future work (deliberately not done yet — quality over quantity)
+## GPU notes (Intel Lunar Lake / Arc, `xe` driver)
 
-This first pass nails the foundation + the bar. Natural next features:
+- The `xe` hardware-cursor plane is flaky (cursor freeze/garble), so `hyprland.lua`
+  sets `cursor:no_hardware_cursors = true`.
+- The `xe` driver also has a DPMS-resume bug that can strand a black screen, so
+  `hypridle.conf` **locks but never powers the panel off**. On hardware without the
+  bug, add a `dpms off` listener back.
+- If the screen ever tears/hangs/corrupts: log in once with `DE_SOFTWARE_RENDER=1`
+  set — `start-hyprland.sh` honours it and forces software rendering.
 
-- A proper **hyprlock** + **hypridle** config (currently swaylock/swayidle).
-- A real **dropdown terminal** pinned to the scratchpad (Super+backtick).
-- A **control-centre panel** (swaync styling + quick toggles) and a themed
-  swaync `style.css`.
-- Per-monitor `hl.monitor` rules; **hyprpaper**/wallpaper rotation.
-- CPU/mem/temp in a secondary bar or the control centre (the old Qtile bar had
-  these; the macOS bar intentionally stays minimal).
+## Keybindings
 
-## Reverting
-
-The old Qtile config is backed up at **`~/qtile-backup-*.tar.gz`**. To restore:
-`tar xzf ~/qtile-backup-*.tar.gz -C ~/.config` and reinstall qtile
-(`sudo dnf install qtile`). GNOME was never modified.
+Mod is **Super**. Full list in [`SHORTCUTS.md`](SHORTCUTS.md). First keys:
+`Super+Return` (terminal), `Super+D` (Spotlight), `Super+,` (Settings),
+`Super+N` (Control Center).

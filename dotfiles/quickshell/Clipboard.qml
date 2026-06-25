@@ -218,7 +218,7 @@ Scope {
                         width: parent.width - 20
                         horizontalAlignment: Text.AlignHCenter
                         visible: clipView.count === 0
-                        text: root.cliphistOk ? "Clipboard history is empty.\nCopy something to get started." : "cliphist isn't installed.\nRun: sudo dnf install cliphist"
+                        text: root.cliphistOk ? "Clipboard history is empty.\nCopy something to get started." : "cliphist isn't installed.\nRun: sudo pacman -S cliphist"
                         color: Theme.fgDim; font.family: Theme.fontText; font.pixelSize: Theme.fsSmall; wrapMode: Text.Wrap
                     }
                 }

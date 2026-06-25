@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 environment: **Hyprland** (Wayland compositor, configured in Lua) + **Quickshell**
 (a QML shell — bar, dock, launcher, notifications, control center, settings,
 app store, lock, OSD). `install.sh` turns a minimal Arch install into the full DE.
-Read `README.md` for the user-facing rationale (it is the source of truth — note
-the `install.sh` header still claims multi-distro, but the project is Arch-only).
+Read `README.md` for the user-facing rationale (it is the source of truth). The
+project is **Arch-only** end to end — no Fedora/COPR/`dnf`/GDM paths remain.
 
 There is **no application source to compile and no test suite.** "Building" means
 running the installer; "testing" means the verification commands below.

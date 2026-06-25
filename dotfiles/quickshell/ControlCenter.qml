@@ -48,7 +48,7 @@ Scope {
 
     // power menu (floating popover). Power profiles come from the PowerProfiles
     // service, which talks to the net.hadess.PowerProfiles D-Bus iface — provided
-    // here by tuned-ppd (Fedora's tuned bridge), so no powerprofilesctl needed.
+    // by power-profiles-daemon (installed in phase 20), so no powerprofilesctl needed.
     property bool powerOpen: false
 
     function refresh() {

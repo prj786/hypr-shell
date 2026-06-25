@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 # power.sh — session power actions for the hypr-shell Control Center.
 #
-# One tested path per action, robust across:
+# One tested path per action:
 #   • The Lua /dispatch quirk: Hyprland's IPC evaluates `hyprctl dispatch <arg>`
 #     as Lua in this config, so `hyprctl dispatch exit` does NOT reliably log
 #     out (it constructs a dispatcher value without running it). We terminate
-#     the logind session instead — works whether the session was started by
-#     greetd (Arch) or GDM (dev box), and brings the greeter back.
-#   • Arch and Fedora: systemctl/loginctl behave identically on both. An active
-#     local session is authorised to power off / reboot / suspend without a
-#     password, so no polkit prompt appears.
+#     the logind session instead — works with the greetd session and brings the
+#     greeter back.
+#   • systemd: an active local session is authorised to power off / reboot /
+#     suspend without a password, so no polkit prompt appears.
 set -u
 
 here="$(cd "$(dirname "$0")" && pwd)"
