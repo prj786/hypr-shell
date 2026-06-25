@@ -32,6 +32,15 @@ phase_postcheck() {
     _check "portal: gtk backend active"           systemctl --user is-active xdg-desktop-portal-gtk.service
     _check "audio: a default sink exists"         sh -c 'wpctl status 2>/dev/null | grep -qi sink'
     _check "network: NetworkManager active"       systemctl is-active NetworkManager.service
+    # CPU microcode: the vendor ucode package should be installed on real hardware.
+    # In a VM the host applies microcode, so it's a neutral note, not a red ✗.
+    if _in_vm; then
+        _note "CPU microcode: skipped (VM — host applies it)"
+    elif [ "${CPU_VENDOR:-unknown}" = intel ] || [ "${CPU_VENDOR:-unknown}" = amd ]; then
+        _check "CPU microcode: ${CPU_VENDOR}-ucode installed" sh -c "pacman -Qq ${CPU_VENDOR}-ucode"
+    else
+        _note "CPU microcode: CPU vendor unknown — no intel/amd-ucode"
+    fi
     # GPU hardware accel is expected to be unavailable in a VM (software rendering),
     # so don't flag it red there — just note it.
     if _in_vm; then

@@ -69,7 +69,7 @@ timestamp per run — there is no `Date.now`-style drift), sources `lib/*.sh` th
 
 | | |
 |---|---|
-| 00 preflight · 10 repos (multilib + paru) · 20 packages · 30 services (greetd/ReGreet) · 40 gpu · 50 dotfiles · 60 userconfig · 90 postcheck | each phase is a `phase_<name>` function |
+| 00 preflight · 10 repos (multilib + paru) · 20 packages · 30 services (greetd/ReGreet) · 35 bootsplash (plymouth) · 37 cpu microcode (intel/amd-ucode) · 40 gpu · 50 dotfiles · 60 userconfig · 90 postcheck | each phase is a `phase_<name>` function |
 
 Cross-cutting mechanisms — understand these before touching any phase:
 

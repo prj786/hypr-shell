@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # lib/detect.sh — Arch-only. Confirm we're on Arch (or an Arch derivative),
-# then detect chassis (laptop/desktop) and GPU vendor.
-# Exports: DISTRO_ID, CHASSIS (laptop|desktop), GPU_VENDOR (intel|amd|nvidia…).
+# then detect chassis (laptop/desktop), GPU vendor and CPU vendor.
+# Exports: DISTRO_ID, CHASSIS (laptop|desktop), GPU_VENDOR (intel|amd|nvidia…),
+#          CPU_VENDOR (intel|amd|unknown — picks intel-ucode/amd-ucode in phase 37).
 
 detect_distro() {
     [ -r /etc/os-release ] || die "no /etc/os-release — unsupported system."
@@ -58,9 +59,30 @@ detect_gpu() {
     export GPU_VENDOR IS_VM
 }
 
+detect_cpu() {
+    # CPU vendor → which microcode package phase 37 installs (intel-ucode vs
+    # amd-ucode). `vendor_id` in /proc/cpuinfo is the canonical signal
+    # (GenuineIntel / AuthenticAMD); fall back to lscpu if it's ever absent.
+    CPU_VENDOR=unknown
+    local v=""
+    [ -r /proc/cpuinfo ] && v="$(awk -F': ' '/^vendor_id/{print $2; exit}' /proc/cpuinfo)"
+    case "$v" in
+        GenuineIntel) CPU_VENDOR=intel ;;
+        AuthenticAMD) CPU_VENDOR=amd ;;
+        *) if command -v lscpu >/dev/null 2>&1; then
+               case "$(lscpu 2>/dev/null)" in
+                   *GenuineIntel*|*Intel*) CPU_VENDOR=intel ;;
+                   *AuthenticAMD*|*AMD*)   CPU_VENDOR=amd ;;
+               esac
+           fi ;;
+    esac
+    export CPU_VENDOR
+}
+
 detect_all() {
-    detect_distro; detect_chassis; detect_gpu
+    detect_distro; detect_chassis; detect_gpu; detect_cpu
     info "distro:  $DISTRO_ID (Arch family)"
     info "chassis: $CHASSIS"
     info "gpu:     $GPU_VENDOR"
+    info "cpu:     $CPU_VENDOR"
 }
