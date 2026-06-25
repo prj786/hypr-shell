@@ -50,16 +50,19 @@ phase_packages() {
     step "20 · packages"
     [ "${NO_PACKAGES:-0}" = "1" ] && { info "--no-packages: skipping install"; return 0; }
 
-    local off aur game
+    local off aur game dev
     mapfile -t off < <(read_list common.list)
     mapfile -t aur < <(read_list aur.list)
     mapfile -t game < <(read_list gaming.list)
+    mapfile -t dev < <(read_list dev.list)
 
     info "${#off[@]} official packages + ${#aur[@]} AUR packages + 2 source themes (Reversal, Mocu)"
+    [ "${DEV:-0}" = "1" ] && info "+ ${#dev[@]} optional dev packages (--dev)"
     [ "${GAMING:-0}" = "1" ] && info "+ ${#game[@]} optional gaming packages (--gaming)"
     if [ "${DRY_RUN:-0}" = "1" ]; then
         printf '%s   pacman:%s %s\n' "$C_DIM" "$C_0" "${off[*]}"
         printf '%s   aur:%s    %s\n' "$C_DIM" "$C_0" "${aur[*]}"
+        [ "${DEV:-0}" = "1" ] && printf '%s   dev:%s    %s\n' "$C_DIM" "$C_0" "${dev[*]}"
         [ "${GAMING:-0}" = "1" ] && printf '%s   gaming:%s %s\n' "$C_DIM" "$C_0" "${game[*]}"
         printf '%s   source:%s Reversal-icon-theme (all variants), mocu-xcursor → /usr/share/icons\n' "$C_DIM" "$C_0"
         return 0
@@ -77,6 +80,10 @@ phase_packages() {
     fi
 
     ask_yes "Install ${#off[@]} official packages now?" && install_official "${off[@]}" || warn "skipped official packages"
+    if [ "${DEV:-0}" = "1" ] && [ "${#dev[@]}" -gt 0 ]; then
+        info "installing the optional dev toolchain (${#dev[@]} packages)"
+        install_official "${dev[@]}"
+    fi
     if [ "${GAMING:-0}" = "1" ] && [ "${#game[@]}" -gt 0 ]; then
         info "installing the optional gaming stack (${#game[@]} packages)"
         install_official "${game[@]}"

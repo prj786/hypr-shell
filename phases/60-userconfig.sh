@@ -94,7 +94,9 @@ phase_userconfig() {
     # servers/formatter declared in dotfiles/mise/config.toml, and wire mise into
     # the shells. The shims dir is also added to PATH by start-hyprland.sh so
     # GUI-launched Fresh finds the servers without an interactive shell.
-    if command -v mise >/dev/null 2>&1; then
+    if [ "${DEV:-0}" != "1" ]; then
+        info "dev toolchain: skipped (opt-in) — re-run with --dev to provision the Node/LSP stack via mise."
+    elif command -v mise >/dev/null 2>&1; then
         run mise trust "$HOME/.config/mise/config.toml" 2>/dev/null || true
         if [ "${DRY_RUN:-0}" = "1" ]; then
             info "would run 'mise install' (node LTS, pnpm, TS/CSS/HTML/JSON/Tailwind/Vue/Svelte servers, prettier)"

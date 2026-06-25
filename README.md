@@ -26,7 +26,7 @@ minimal Arch install into the full DE.
 
 ## Status
 
-**Alpha — `0.1.0-alpha`.** Usable and daily-drivable, but expect rough edges and
+**Alpha — `0.2.0-alpha`.** Usable and daily-drivable, but expect rough edges and
 breaking changes between versions. Tested on a minimal Arch install in a QEMU/KVM
 VM. Feedback and issues welcome.
 
@@ -59,12 +59,16 @@ bash install.sh --dry-run    # show everything it would do, change nothing
 bash install.sh --yes        # unattended
 bash install.sh --check-only # just run the verification checklist
 bash install.sh --gaming     # also install the optional gaming stack (Steam, …)
+bash install.sh --dev        # also install the front-end dev toolchain (mise/Node, …)
 ```
 
-By default **no gaming packages are installed** — `--gaming` opts in to Steam,
-gamescope, gamemode and mangohud (and only then are [multilib] + the 32-bit GPU
-drivers enabled). A plain `bash install.sh` asks once, interactively; `--yes`
-skips them.
+The default install is lean: **no gaming and no dev packages** unless you ask.
+`--gaming` opts in to Steam, gamescope, gamemode and mangohud (and only then are
+[multilib] + the 32-bit GPU drivers enabled); `--dev` opts in to the front-end dev
+toolchain (git-delta, lazygit, gh, mise + the Node/LSP stack, ripgrep, fd, fzf,
+bat, cmake, meson). A plain `bash install.sh` asks once for each, interactively;
+`--yes` skips both. (Flags combine: `--gaming --dev` installs everything unattended
+with `--yes`.)
 
 **Updating** is the same command — pull and re-run:
 
@@ -88,7 +92,7 @@ Settings; full keymap in `dotfiles/hypr/SHORTCUTS.md`.
 |------|------|
 | 00 preflight | tool/network/disk checks; announces the backup policy |
 | 10 repos | bootstraps **paru**; enables **[multilib]** only with `--gaming` (32-bit libs are opt-in) |
-| 20 packages | installs `packages/common.list` (pacman) + `packages/aur.list` (AUR); `packages/gaming.list` only with `--gaming` |
+| 20 packages | installs `packages/common.list` (pacman) + `packages/aur.list` (AUR); `packages/gaming.list` only with `--gaming`, `packages/dev.list` only with `--dev` |
 | 30 services | pipewire/NM/bluetooth/ppd; installs **greetd + ReGreet** (fully-Wayland greeter) + the Wayland session entry |
 | 35 bootsplash | **Plymouth** boot splash (Arch logo + spinner): installs the theme, adds the `plymouth` initramfs hook, and adds `quiet splash …` to the kernel cmdline (systemd-boot/GRUB, auto-detected + backed up) so the boot `[OK]` text is hidden |
 | 37 cpu microcode | detects the CPU and installs the matching **`intel-ucode`** / **`amd-ucode`**, then wires the early-boot microcode initrd into the bootloader (systemd-boot entry / GRUB regen / UKI rebuild, auto-detected + backed up). Skipped in a VM (the host applies microcode) |
@@ -105,7 +109,7 @@ genuinely safe and the whole thing is re-runnable.
 - **`packages/common.list`** — official-repo packages (real Arch names), installed
   with `pacman -S --needed`. Grouped: core session, greeter, audio, network,
   bluetooth, power, terminals, **GTK utility apps** (Nemo, Engrampa, imv, Zathura,
-  mpv), browser, utilities, theming + fonts, dev tooling, core GPU userspace
+  mpv), browser, utilities, theming + fonts, `git`, core GPU userspace
   (mesa), tuning, build deps.
 - **`packages/aur.list`** — AUR packages (built via paru): just `gpu-screen-recorder`.
   Kept deliberately short. Theme/icon/cursor/accent are owned by the Quickshell
@@ -114,6 +118,10 @@ genuinely safe and the whole thing is re-runnable.
   gamemode, mangohud + the 32-bit graphics libs. Installed only with
   `install.sh --gaming`, which is also what enables [multilib] and the lib32 GPU
   drivers. A normal install ships **no** gaming packages.
+- **`packages/dev.list`** — **optional, off by default.** The front-end dev
+  toolchain: git-delta, lazygit, github-cli, mise (+ the Node/LSP stack via
+  `mise install` in phase 60), ripgrep, fd, fzf, bat, cmake, meson. Installed only
+  with `install.sh --dev`. A normal install ships just `git`.
 - **GPU/Vulkan drivers** are *not* in the lists — phase 40 installs the right set
   for the detected vendor (intel / amd / nvidia); the 32-bit ones only with `--gaming`.
 
@@ -190,12 +198,14 @@ tears or hangs, log in once with `DE_SOFTWARE_RENDER=1` set (see
 
 ## Roadmap
 
-**Shipped (`0.1.0-alpha`)** — Hyprland + Lua config, top bar, dock, launcher
+**Shipped (`0.2.0-alpha`)** — Hyprland + Lua config, top bar, dock, launcher
 (Spotlight), native notifications, control center, settings app, session lock, OSD,
 clipboard history, polkit agent, system tray, screenshots, XDG portals, greeter,
 Plymouth boot splash + welcome splash, traditional-GTK app stack with one-file
 default-app management, live theming + accent, shell crash-respawn, idle-suspend +
-low-battery safety.
+low-battery safety; hardware-aware install — per-CPU microcode, robust GPU-vendor
+detection, real-hardware audio firmware (SOF) — and opt-in `--gaming` / `--dev`
+package stacks for a lean default install.
 
 **Next** — live on the [project board](https://github.com/users/prj786/projects/5):
 

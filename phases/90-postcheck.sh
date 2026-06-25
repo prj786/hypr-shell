@@ -75,8 +75,13 @@ phase_postcheck() {
     fi
     _check "editor: Fresh (fresh) on PATH"        sh -c 'command -v fresh'
     _check "terminal: kitty installed"            sh -c 'command -v kitty'
-    _check "dev: node via mise shims"             sh -c 'command -v mise && [ -x "$HOME/.local/share/mise/shims/node" ]'
-    _check "dev: TypeScript language server"      sh -c '[ -x "$HOME/.local/share/mise/shims/typescript-language-server" ] || command -v typescript-language-server'
+    # dev toolchain is opt-in (--dev); only verify it when mise was actually installed.
+    if pkg_present mise; then
+        _check "dev: node via mise shims"             sh -c 'command -v mise && [ -x "$HOME/.local/share/mise/shims/node" ]'
+        _check "dev: TypeScript language server"      sh -c '[ -x "$HOME/.local/share/mise/shims/typescript-language-server" ] || command -v typescript-language-server'
+    else
+        _note "dev: toolchain not installed (opt-in — re-run with --dev)"
+    fi
 
     echo
     info "manual: Firefox → about:support → Compositing = 'WebRender'; play a video and watch \`intel_gpu_top\` Video engine."

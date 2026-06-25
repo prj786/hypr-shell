@@ -119,19 +119,11 @@ ttf-jetbrains-mono-nerd
 ttf-nerd-fonts-symbols-mono
 inter-font
 
-# ── dev tooling ──────────────────────────────────────────────────────────────
-# Front-end focused. Node/npm/pnpm + the language servers are NOT pacman packages
-# here — mise owns the Node toolchain (dotfiles/mise/config.toml provisions
-# node LTS, pnpm and the LSP/formatter binaries; phase 60 runs `mise install`).
-git                     # pre-installed VCS (also used by the AUR bootstrap)
-git-delta               # nicer git diffs
-lazygit                 # TUI git client
-github-cli              # GitHub CLI (provides the `gh` command)
-mise                    # polyglot runtime/version manager — owns Node here
-ripgrep                 # fast search (rg)
-fd                      # fast file find
-fzf                     # fuzzy finder
-bat                     # syntax-highlighting pager
+# ── version control (always) ─────────────────────────────────────────────────
+# The front-end dev toolchain (git-delta, lazygit, github-cli, mise + the Node/LSP
+# stack, ripgrep, fd, fzf, bat, cmake, meson) is OPT-IN — see packages/dev.list,
+# installed only with `install.sh --dev` (which also runs `mise install`, phase 60).
+git                     # VCS — user-facing + the AUR (paru) bootstrap needs it
 
 # ── core GPU userspace (ALWAYS — the whole shell is GPU-accelerated) ──────────
 # 64-bit Mesa + the Vulkan loader are mandatory; the per-vendor ICDs/VAAPI are
@@ -146,7 +138,7 @@ vulkan-tools            # vulkaninfo — Vulkan device verification (phase 90 po
 # ── system tuning ────────────────────────────────────────────────────────────
 zram-generator
 
-# ── build deps (AUR builds + hyprpm plugins) ─────────────────────────────────
+# ── build deps (AUR builds; paru bootstrap) ──────────────────────────────────
+# base-devel is required by makepkg/paru. cmake/meson moved to dev.list (--dev) —
+# paru pulls them as makedepends on demand for any AUR build that needs them.
 base-devel
-cmake
-meson

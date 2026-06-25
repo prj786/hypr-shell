@@ -10,6 +10,7 @@
 # ║    bash install.sh --no-packages   skip the package install (config only)  ║
 # ║    bash install.sh --check-only    run only the verification checklist     ║
 # ║    bash install.sh --gaming        also install the gaming stack           ║
+# ║    bash install.sh --dev           also install the dev toolchain          ║
 # ║                                                                            ║
 # ║  Idempotent: re-running re-links (no-op), skips installed packages, and    ║
 # ║  never clobbers an existing config without a timestamped .bak backup.      ║
@@ -20,7 +21,7 @@ DOTREPO="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 export DOTREPO
 
 # --- flags ---
-DRY_RUN=0; ASSUME_YES=0; NO_PACKAGES=0; CHECK_ONLY=0; GAMING=0
+DRY_RUN=0; ASSUME_YES=0; NO_PACKAGES=0; CHECK_ONLY=0; GAMING=0; DEV=0
 for a in "$@"; do
     case "$a" in
         --dry-run)     DRY_RUN=1 ;;
@@ -28,11 +29,12 @@ for a in "$@"; do
         --no-packages) NO_PACKAGES=1 ;;
         --check-only)  CHECK_ONLY=1 ;;
         --gaming)      GAMING=1 ;;
+        --dev)         DEV=1 ;;
         -h|--help)     sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "unknown flag: $a (see --help)"; exit 2 ;;
     esac
 done
-export DRY_RUN ASSUME_YES NO_PACKAGES GAMING
+export DRY_RUN ASSUME_YES NO_PACKAGES GAMING DEV
 
 # A fixed per-run timestamp for backups (passed without Date.now-style drift).
 RUN_STAMP="$(date -u +%Y%m%d-%H%M%S 2>/dev/null || echo manual)"
@@ -68,6 +70,19 @@ elif ask_yes "Install the optional gaming stack? (Steam, gamescope, gamemode, ma
     GAMING=1
 else
     info "gaming stack: skipped — re-run with --gaming to add it later."
+fi
+
+# The front-end dev toolchain (git-delta, lazygit, github-cli, mise + the Node/LSP
+# stack via `mise install`, ripgrep, fd, fzf, bat, cmake, meson) is OPT-IN. Settle
+# the choice here so phase 20 (dev.list) and phase 60 (mise install) honor it.
+if [ "$DEV" = "1" ]; then
+    info "dev toolchain: enabled (--dev) — dev CLIs + the mise Node/LSP toolchain."
+elif [ "$ASSUME_YES" = "1" ] || [ "$DRY_RUN" = "1" ] || [ "$NO_PACKAGES" = "1" ]; then
+    info "dev toolchain: not selected (opt-in) — pass --dev for the dev CLIs + mise Node stack."
+elif ask_yes "Install the optional dev toolchain? (git-delta, lazygit, gh, mise+Node, ripgrep, fd, fzf, bat)"; then
+    DEV=1
+else
+    info "dev toolchain: skipped — re-run with --dev to add it later."
 fi
 
 phase_preflight

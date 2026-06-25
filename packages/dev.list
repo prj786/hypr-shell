@@ -1,0 +1,18 @@
+# dev.list — OPTIONAL front-end dev toolchain. Installed ONLY with `install.sh --dev`,
+# which also runs `mise install` in phase 60 (Node LTS + pnpm + language servers).
+# A normal install ships NONE of these (only `git` stays in common.list). Real Arch
+# names, one per line; # comments and blank lines ignored (like common/gaming.list).
+
+git-delta                # nicer git diffs
+lazygit                  # TUI git client
+github-cli               # GitHub CLI (provides the `gh` command)
+mise                     # polyglot runtime/version manager — owns the Node toolchain
+ripgrep                  # fast search (rg)
+fd                       # fast file find
+fzf                      # fuzzy finder
+bat                      # syntax-highlighting pager
+
+# build tooling — only needed to build hyprpm plugins / heavier AUR packages.
+# paru pulls makedepends on demand regardless, so the default install omits these.
+cmake
+meson

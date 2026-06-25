@@ -50,7 +50,7 @@ body:
     attributes:
       label: hypr-shell version
       description: "Settings → sidebar, or `cat ~/hypr-shell/VERSION`"
-      placeholder: "0.1.0-alpha"
+      placeholder: "0.2.0-alpha"
   - type: textarea
     id: check
     attributes:
