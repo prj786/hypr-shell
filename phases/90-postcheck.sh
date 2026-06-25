@@ -59,7 +59,13 @@ phase_postcheck() {
     fi
     _check "keyring agent running"                pgrep -f gnome-keyring-daemon
     _check "kb layout: english (us)"              sh -c 'hyprctl getoption input:kb_layout 2>/dev/null | grep -qw us'
-    _check "gaming: gamemode + steam installed"   sh -c 'pacman -Qq gamemode && pacman -Qq steam'
+    # gaming is opt-in (--gaming); only verify it when it was actually installed,
+    # so a normal install never shows a red ✗ for packages it deliberately skipped.
+    if pkg_present steam; then
+        _check "gaming: gamemode + steam installed"   sh -c 'pacman -Qq gamemode && pacman -Qq steam'
+    else
+        _note "gaming: not installed (opt-in — re-run with --gaming)"
+    fi
     _check "editor: Fresh (fresh) on PATH"        sh -c 'command -v fresh'
     _check "terminal: kitty installed"            sh -c 'command -v kitty'
     _check "dev: node via mise shims"             sh -c 'command -v mise && [ -x "$HOME/.local/share/mise/shims/node" ]'

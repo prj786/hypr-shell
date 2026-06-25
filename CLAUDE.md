@@ -69,7 +69,7 @@ timestamp per run — there is no `Date.now`-style drift), sources `lib/*.sh` th
 
 | | |
 |---|---|
-| 00 preflight · 10 repos (multilib + paru) · 20 packages · 30 services (greetd/ReGreet) · 35 bootsplash (plymouth) · 37 cpu microcode (intel/amd-ucode) · 40 gpu · 50 dotfiles · 60 userconfig · 90 postcheck | each phase is a `phase_<name>` function |
+| 00 preflight · 10 repos (paru; multilib only with --gaming) · 20 packages · 30 services (greetd/ReGreet) · 35 bootsplash (plymouth) · 37 cpu microcode (intel/amd-ucode) · 40 gpu · 50 dotfiles · 60 userconfig · 90 postcheck | each phase is a `phase_<name>` function |
 
 Cross-cutting mechanisms — understand these before touching any phase:
 
@@ -82,7 +82,9 @@ Cross-cutting mechanisms — understand these before touching any phase:
   package-by-package, **warn-and-skip** the missing ones, and always `return 0`. A
   single bad/unavailable package name must never abort the run (this was the root
   cause of a "no greeter" failure). Package lists are `packages/common.list`
-  (pacman) and `packages/aur.list` (paru) — real Arch names, `#` comments stripped.
+  (pacman) and `packages/aur.list` (paru); the opt-in `packages/gaming.list` is
+  installed only with `--gaming` (which also flips on [multilib] in phase 10 and
+  the lib32 GPU drivers in phase 40). Real Arch names, `#` comments stripped.
 - **Symlink farm with backups (`lib/deploy.sh`).** `link_tree` symlinks
   `dotfiles/<x>` → `~/.config/<x>`, moving any existing real dir to
   `<dest>.bak.<RUN_STAMP>` first (re-linking is a no-op). systemd user units are

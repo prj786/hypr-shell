@@ -9,6 +9,7 @@
 # ║    bash install.sh --dry-run       print every action, change nothing      ║
 # ║    bash install.sh --no-packages   skip the package install (config only)  ║
 # ║    bash install.sh --check-only    run only the verification checklist     ║
+# ║    bash install.sh --gaming        also install the gaming stack           ║
 # ║                                                                            ║
 # ║  Idempotent: re-running re-links (no-op), skips installed packages, and    ║
 # ║  never clobbers an existing config without a timestamped .bak backup.      ║
@@ -19,18 +20,19 @@ DOTREPO="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 export DOTREPO
 
 # --- flags ---
-DRY_RUN=0; ASSUME_YES=0; NO_PACKAGES=0; CHECK_ONLY=0
+DRY_RUN=0; ASSUME_YES=0; NO_PACKAGES=0; CHECK_ONLY=0; GAMING=0
 for a in "$@"; do
     case "$a" in
         --dry-run)     DRY_RUN=1 ;;
         --yes|-y)      ASSUME_YES=1 ;;
         --no-packages) NO_PACKAGES=1 ;;
         --check-only)  CHECK_ONLY=1 ;;
+        --gaming)      GAMING=1 ;;
         -h|--help)     sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "unknown flag: $a (see --help)"; exit 2 ;;
     esac
 done
-export DRY_RUN ASSUME_YES NO_PACKAGES
+export DRY_RUN ASSUME_YES NO_PACKAGES GAMING
 
 # A fixed per-run timestamp for backups (passed without Date.now-style drift).
 RUN_STAMP="$(date -u +%Y%m%d-%H%M%S 2>/dev/null || echo manual)"
@@ -54,6 +56,19 @@ if [ "$CHECK_ONLY" = "1" ]; then
 fi
 
 [ "$DRY_RUN" = "1" ] && info "DRY RUN — no changes will be made."
+
+# The gaming stack (Steam, gamescope, gamemode, mangohud + 32-bit libs) is OPT-IN.
+# It pulls in [multilib] (phase 10) and the lib32 GPU drivers (phase 40), so the
+# choice must be settled BEFORE those phases run. Default: not installed.
+if [ "$GAMING" = "1" ]; then
+    info "gaming stack: enabled (--gaming) — [multilib] + Steam, gamescope, gamemode, mangohud."
+elif [ "$ASSUME_YES" = "1" ] || [ "$DRY_RUN" = "1" ] || [ "$NO_PACKAGES" = "1" ]; then
+    info "gaming stack: not selected (opt-in) — pass --gaming for Steam, gamescope, gamemode, mangohud."
+elif ask_yes "Install the optional gaming stack? (Steam, gamescope, gamemode, mangohud + 32-bit libs)"; then
+    GAMING=1
+else
+    info "gaming stack: skipped — re-run with --gaming to add it later."
+fi
 
 phase_preflight
 phase_repos

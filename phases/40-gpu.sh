@@ -1,25 +1,30 @@
 #!/usr/bin/env bash
 # phase 40 — install per-vendor Vulkan + VAAPI drivers and do vendor config.
-# mesa/lib32-mesa + vulkan-icd-loader come from common.list; this adds the
-# vendor-specific ICD + video-decode driver for whatever GPU was detected.
+# mesa + vulkan-icd-loader come from common.list; this adds the vendor-specific
+# ICD + video-decode driver for the detected GPU. The 32-bit (lib32-*) drivers
+# are added only with --gaming — they exist for 32-bit games, and [multilib] is
+# gated on --gaming too (phase 10).
 
 phase_gpu() {
     step "40 · GPU ($GPU_VENDOR)"
     [ "${NO_PACKAGES:-0}" = "1" ] || {
         case " $GPU_VENDOR " in
             *" intel "*)
-                install_official vulkan-intel lib32-vulkan-intel intel-media-driver
+                install_official vulkan-intel intel-media-driver
+                [ "${GAMING:-0}" = "1" ] && install_official lib32-vulkan-intel
                 ok "Intel: ANV + iHD VAAPI installed." ;;
         esac
         case " $GPU_VENDOR " in
             *" amd "*)
-                install_official vulkan-radeon lib32-vulkan-radeon libva-mesa-driver lib32-libva-mesa-driver
+                install_official vulkan-radeon libva-mesa-driver
+                [ "${GAMING:-0}" = "1" ] && install_official lib32-vulkan-radeon lib32-libva-mesa-driver
                 ok "AMD: RADV + VAAPI installed." ;;
         esac
         case " $GPU_VENDOR " in
             *" nvidia "*)
                 warn "NVIDIA: installing the OPEN modules (Turing+). For older GPUs use nvidia-dkms instead."
-                install_official nvidia-open-dkms nvidia-utils lib32-nvidia-utils egl-wayland ;;
+                install_official nvidia-open-dkms nvidia-utils egl-wayland
+                [ "${GAMING:-0}" = "1" ] && install_official lib32-nvidia-utils ;;
         esac
     }
 

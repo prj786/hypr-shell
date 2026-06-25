@@ -1,0 +1,16 @@
+# gaming.list — OPTIONAL gaming stack. Installed ONLY with `install.sh --gaming`,
+# which also enables [multilib] (phase 10) and the 32-bit GPU drivers (phase 40).
+# A normal install ships NONE of these. Real Arch names, one per line; # comments
+# and blank lines are ignored (same format as common.list / aur.list).
+
+steam                    # Steam client (32-bit; needs the lib32 graphics stack below)
+gamescope                # micro-compositor for games (upscale / framerate / HDR)
+gamemode                 # on-demand CPU/GPU performance governor
+lib32-gamemode           #   32-bit shim so 32-bit games can request gamemode
+mangohud                 # in-game FPS / frametime / sensor overlay
+lib32-mangohud           #   32-bit overlay for 32-bit games
+
+# 32-bit graphics base — required by 32-bit games (Steam) but NOT by the desktop,
+# so they live here, not in common.list.
+lib32-mesa               # 32-bit Mesa (OpenGL / Vulkan userspace)
+lib32-vulkan-icd-loader  # 32-bit Vulkan loader

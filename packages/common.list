@@ -126,17 +126,12 @@ fzf                     # fuzzy finder
 bat                     # syntax-highlighting pager
 podman                  # rootless containers
 
-# ── gaming (needs multilib — phase 10 enables it) ────────────────────────────
-steam
-gamemode
-lib32-gamemode
-gamescope
-mangohud
-lib32-mangohud
+# ── core GPU userspace (ALWAYS — the whole shell is GPU-accelerated) ──────────
+# 64-bit Mesa + the Vulkan loader are mandatory; the per-vendor ICDs/VAAPI are
+# added by phase 40. The gaming stack and ALL 32-bit (lib32-*) graphics are
+# opt-in — see packages/gaming.list, installed only with `install.sh --gaming`.
 mesa
-lib32-mesa
 vulkan-icd-loader
-lib32-vulkan-icd-loader
 
 # ── system tuning ────────────────────────────────────────────────────────────
 zram-generator

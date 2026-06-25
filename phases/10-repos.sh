@@ -83,7 +83,13 @@ _bootstrap_aur() {
 
 phase_repos() {
     step "10 · repositories"
-    _enable_multilib
+    # [multilib] is only needed for 32-bit libs (Steam + the lib32 GPU drivers),
+    # which are now opt-in — so only enable it when the gaming stack was requested.
+    if [ "${GAMING:-0}" = "1" ]; then
+        _enable_multilib
+    else
+        info "[multilib] left disabled — 32-bit libs / Steam are opt-in (re-run with --gaming to enable)"
+    fi
     _sync_system
     _bootstrap_aur
     ok "repositories ready"
