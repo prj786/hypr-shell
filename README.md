@@ -38,7 +38,7 @@ suffix until the first stable cut. The canonical version lives in the repo-root
 
 ## Screenshots
 
-<p align="center"><img src="docs/media/de.png" width="820" alt="hypr-shell desktop — top bar, dock, clean dark workspace"></p>
+https://github.com/user-attachments/assets/a2ffb2e1-2482-46c7-911d-c94bb8413434
 
 | | |
 |---|---|
