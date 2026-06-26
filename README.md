@@ -42,10 +42,12 @@ https://github.com/user-attachments/assets/a2ffb2e1-2482-46c7-911d-c94bb8413434
 
 | | |
 |---|---|
-| **Launcher** — fuzzy app / file search<br><img src="docs/media/search-bar.png" alt="Launcher search"> | **Window overview** — spaces & open windows<br><img src="docs/media/overview.png" alt="Window overview"> |
-| **App launcher** — pinned apps from the dock<br><img src="docs/media/app-launcher.png" alt="App launcher"> | **Quick Settings**<br><img src="docs/media/control-center.png" alt="Quick Settings"> |
-| **Settings**<br><img src="docs/media/settings.png" alt="Settings app"> | **App installer** — pacman + AUR<br><img src="docs/media/app-installer.png" alt="App installer"> |
-| **Clipboard history**<br><img src="docs/media/clipboard-history.png" alt="Clipboard history"> | **Dock**<br><img src="docs/media/dock.png" alt="Dock"> |
+| **Tiling workflow** — apps side by side<br><img src="docs/media/2026-06-25_17-36-24.png" alt="Tiling workflow"> | **Files** — Nemo file manager<br><img src="docs/media/2026-06-25_17-35-53.png" alt="File manager"> |
+| **Launcher** — fuzzy app / file search<br><img src="docs/media/2026-06-25_17-37-21.png" alt="Launcher with live results"> | **App Store** — pacman + AUR<br><img src="docs/media/2026-06-25_17-36-39.png" alt="App Store"> |
+| **Quick Settings**<br><img src="docs/media/2026-06-25_17-37-57.png" alt="Quick Settings"> | **Notifications**<br><img src="docs/media/2026-06-25_17-38-22.png" alt="Notification toast"> |
+| **Clipboard history**<br><img src="docs/media/2026-06-25_17-37-10.png" alt="Clipboard history"> | **Places** — quick folder menu<br><img src="docs/media/2026-06-25_17-36-30.png" alt="Places menu"> |
+| **Polkit agent** — authentication dialog<br><img src="docs/media/2026-06-25_17-38-07.png" alt="Authentication dialog"> | **Terminal** — kitty<br><img src="docs/media/2026-06-25_17-37-33.png" alt="Terminal"> |
+| **App search** — Launcher results<br><img src="docs/media/2026-06-25_17-37-01.png" alt="Launcher"> | **Archive manager** — Engrampa<br><img src="docs/media/2026-06-25_17-38-38.png" alt="Archive manager"> |
 
 <sub>The accent is configurable (Settings → Theme). Regenerate any of these with `docs/capture.sh`.</sub>
 
